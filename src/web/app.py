@@ -1,17 +1,20 @@
 import asyncio
-from pathlib import Path
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+import threading
 
 from src.config import Config
 from src.scheduler.runner import DigestRunner
-from src.scheduler.scheduler import DigestScheduler
 from src.storage.json_store import JSONStore
+from src.scheduler.scheduler import DigestScheduler
 
 app = FastAPI(title="Clippings", docs_url="/api/docs")
 
 CONFIG_PATH = "config.yaml"
+
+
+def _run_digest_sync():
+    config = Config.load(CONFIG_PATH)
+    runner = DigestRunner(config)
+    asyncio.run(runner.run())
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -97,9 +100,8 @@ async def save_config(data: dict):
 
 @app.post("/api/run")
 async def trigger_run():
-    config = Config.load(CONFIG_PATH)
-    runner = DigestRunner(config)
-    asyncio.run(runner.run())
+    t = threading.Thread(target=_run_digest_sync, daemon=True)
+    t.start()
     return {"status": "ok"}
 
 

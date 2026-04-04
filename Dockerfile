@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir .
 
 RUN mkdir -p /app/data
 
-CMD ["digest", "serve"]
+CMD ["python", "-m", "src.main", "serve"]
