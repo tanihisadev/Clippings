@@ -187,6 +187,13 @@ def serve(host, port):
     click.echo(f"  Web UI: http://{host}:{port}")
     click.echo("")
 
+    if config.notifier.type == "discord" and config.notifier.discord_bot_token:
+        from src.notifier.discord import start_discord_bot
+
+        click.echo("  Starting Discord bot...")
+        start_discord_bot(config.notifier.discord_bot_token)
+        click.echo("  Discord bot started")
+
     def start_scheduler():
         scheduler = DigestScheduler(config)
         scheduler.start()

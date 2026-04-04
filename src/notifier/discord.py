@@ -7,39 +7,59 @@ from src.fetcher.models import Article
 from src.notifier.base import BaseNotifier
 from src.storage.json_store import JSONStore
 
-_intents = discord.Intents.default()
-_intents.message_content = True
-_intents.reactions = True
-
-_bot = commands.Bot(command_prefix="!", intents=_intents)
-_store = JSONStore()
-_sent_messages = []
+_bot = None
 _ready_event = threading.Event()
+_sent_messages = []
+_store = JSONStore()
 
 
-@_bot.event
-async def on_ready():
-    _ready_event.set()
+def get_bot():
+    global _bot
+    return _bot
 
 
-@_bot.event
-async def on_raw_reaction_add(payload):
-    if payload.user_id == _bot.user.id:
+def start_discord_bot(token: str) -> None:
+    global _bot
+
+    if _bot is not None:
         return
-    if payload.emoji.name not in ("\U0001f44d", "\U0001f44e"):
-        return
 
-    for msg_info in _sent_messages:
-        if msg_info["message_id"] == payload.message_id:
-            action = "like" if payload.emoji.name == "\U0001f44d" else "dislike"
-            _store.update_preferences(
-                article_id=msg_info["article_id"],
-                action=action,
-                source=msg_info["source"],
-                category=msg_info["category"],
-            )
-            print(f"  Feedback: {action} -> {msg_info['category']}/{msg_info['source']}")
-            break
+    intents = discord.Intents.default()
+    intents.message_content = True
+    intents.reactions = True
+
+    _bot = commands.Bot(command_prefix="!", intents=intents)
+
+    @_bot.event
+    async def on_ready():
+        _ready_event.set()
+        print(f"Discord bot ready as {_bot.user}")
+
+    @_bot.event
+    async def on_raw_reaction_add(payload):
+        if payload.user_id == _bot.user.id:
+            return
+        if payload.emoji.name not in ("\U0001f44d", "\U0001f44e"):
+            return
+
+        for msg_info in _sent_messages:
+            if msg_info["message_id"] == payload.message_id:
+                action = "like" if payload.emoji.name == "\U0001f44d" else "dislike"
+                _store.update_preferences(
+                    article_id=msg_info["article_id"],
+                    action=action,
+                    source=msg_info["source"],
+                    category=msg_info["category"],
+                )
+                print(f"  Feedback: {action} -> {msg_info['category']}/{msg_info['source']}")
+                break
+
+    def run():
+        _bot.run(token)
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    _ready_event.wait(timeout=15)
 
 
 class DiscordNotifier(BaseNotifier):
@@ -51,16 +71,11 @@ class DiscordNotifier(BaseNotifier):
         self.ping = ping
 
     async def send(self, groups: dict[str, dict[str, list[Article]]]) -> str:
-        _sent_messages.clear()
-        _ready_event.clear()
+        global _sent_messages
+        _sent_messages = []
 
-        def start_bot():
-            _bot.run(self.bot_token)
-
-        thread = threading.Thread(target=start_bot, daemon=True)
-        thread.start()
-
-        _ready_event.wait(timeout=15)
+        if _bot is None:
+            start_discord_bot(self.bot_token)
 
         channel = _bot.get_channel(self.channel_id)
         if not channel:
@@ -68,15 +83,15 @@ class DiscordNotifier(BaseNotifier):
 
         if self.ping == "everyone":
             await channel.send(
-                "@everyone **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+                "@everyone **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
             )
         elif self.ping == "here":
             await channel.send(
-                "@here **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+                "@here **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
             )
         elif self.ping:
             await channel.send(
-                f"{self.ping} **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+                f"{self.ping} **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
             )
 
         for category, sources in groups.items():
