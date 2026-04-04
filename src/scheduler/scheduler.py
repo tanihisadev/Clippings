@@ -1,8 +1,10 @@
+import asyncio
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+
 from src.config import Config
 from src.scheduler.runner import DigestRunner
-import asyncio
 
 
 class DigestScheduler:
@@ -22,7 +24,9 @@ class DigestScheduler:
             name="Daily Clippings",
             replace_existing=True,
         )
-        print(f"Scheduled daily digest at {self.config.schedule.time} {self.config.schedule.timezone}")
+        t = self.config.schedule.time
+        tz = self.config.schedule.timezone
+        print(f"Scheduled daily digest at {t} {tz}")
 
     def start(self) -> None:
         """Start the scheduler."""

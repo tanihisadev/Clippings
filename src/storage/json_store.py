@@ -1,10 +1,10 @@
 import json
-import tempfile
 import shutil
-from pathlib import Path
-from typing import Any, Dict, List
-from datetime import datetime
+import tempfile
 import threading
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 
 class JSONStore:
@@ -22,7 +22,7 @@ class JSONStore:
         path = self._file_path(name)
         if not path.exists():
             return default if default is not None else {}
-        with open(path, "r") as f:
+        with open(path) as f:
             return json.load(f)
 
     def save(self, name: str, data: Any) -> None:
@@ -40,14 +40,23 @@ class JSONStore:
                     pass
                 raise
 
-    def update_preferences(self, article_id: str, action: str, source: str, category: str = "") -> None:
-        prefs = self.load("preferences", {
-            "liked_categories": [],
-            "disliked_categories": [],
-            "liked_sources": [],
-            "disliked_sources": [],
-            "article_feedback": [],
-        })
+    def update_preferences(
+        self,
+        article_id: str,
+        action: str,
+        source: str,
+        category: str = "",
+    ) -> None:
+        prefs = self.load(
+            "preferences",
+            {
+                "liked_categories": [],
+                "disliked_categories": [],
+                "liked_sources": [],
+                "disliked_sources": [],
+                "article_feedback": [],
+            },
+        )
 
         feedback_entry = {
             "article_id": article_id,
@@ -61,31 +70,38 @@ class JSONStore:
             prefs["article_feedback"] = []
         prefs["article_feedback"].append(feedback_entry)
 
-        for field, key in [("liked_categories", "category"), ("disliked_categories", "category"),
-                           ("liked_sources", "source"), ("disliked_sources", "source")]:
+        self._auto_update_lists(prefs)
+        self.save("preferences", prefs)
+
+    def _auto_update_lists(self, prefs: dict) -> None:
+        """Auto-populate liked/disliked lists after 2+ feedback entries."""
+        feedback = prefs.get("article_feedback", [])
+
+        for field, key in [
+            ("liked_categories", "category"),
+            ("disliked_categories", "category"),
+            ("liked_sources", "source"),
+            ("disliked_sources", "source"),
+        ]:
             prefix = "like" if "liked" in field else "dislike"
-            count = sum(
-                1 for e in prefs["article_feedback"]
-                if e.get(key) and e[key] not in prefs.get(field.replace("liked", "disliked") if "liked" in field else field.replace("disliked", "liked"), [])
-                and e["action"] == prefix
-            )
-            value = feedback_entry.get(key, "")
+            count = sum(1 for e in feedback if e.get(key) and e["action"] == prefix)
+            value = feedback[-1].get(key, "")
             if value and count >= 2 and value not in prefs[field]:
                 prefs[field].append(value)
 
-        self.save("preferences", prefs)
-
-    def record_digest(self, articles_count: int, sources: List[str], message_id: str) -> None:
+    def record_digest(self, articles_count: int, sources: list[str], message_id: str) -> None:
         history = self.load("history", {"digests": []})
         if "digests" not in history:
             history["digests"] = []
 
-        history["digests"].append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "articles_count": articles_count,
-            "sources": sources,
-            "message_id": message_id,
-        })
+        history["digests"].append(
+            {
+                "timestamp": datetime.utcnow().isoformat(),
+                "articles_count": articles_count,
+                "sources": sources,
+                "message_id": message_id,
+            }
+        )
 
         self.save("history", history)
 

@@ -1,7 +1,7 @@
 import httpx
-from typing import Dict, List
-from src.notifier.base import BaseNotifier
+
 from src.fetcher.models import Article
+from src.notifier.base import BaseNotifier
 
 
 class TelegramNotifier(BaseNotifier):
@@ -13,7 +13,7 @@ class TelegramNotifier(BaseNotifier):
         self.bot_token = bot_token
         self.chat_id = chat_id
 
-    async def send(self, groups: Dict[str, Dict[str, List[Article]]]) -> str:
+    async def send(self, groups: dict[str, dict[str, list[Article]]]) -> str:
         message = "📰 *Clippings*\n\n"
 
         for topic_name, sources in groups.items():
@@ -22,8 +22,11 @@ class TelegramNotifier(BaseNotifier):
                 message += f"  _{source_name}_\n"
                 for article in articles:
                     summary_preview = article.summary[:100] if article.summary else "No summary"
-                    title = article.title.replace("_", "\\_").replace("*", "\\*").replace("[", "\\[").replace("]", "\\]")
-                    message += f"  • [{title}]({article.url})\n    _{summary_preview}_\n\n"
+                    title = article.title
+                    title = title.replace("_", "\\_").replace("*", "\\*")
+                    title = title.replace("[", "\\[").replace("]", "\\]")
+                    message += f"  • [{title}]({article.url})\n"
+                    message += f"    _{summary_preview}_\n\n"
 
         inline_keyboard = []
         row = []

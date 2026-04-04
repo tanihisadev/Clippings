@@ -1,17 +1,17 @@
-import asyncio
 import json
-from pathlib import Path
-from typing import Dict, List
 from datetime import datetime
+from pathlib import Path
+
+import httpx
+import trafilatura
+
 from src.config import Config
 from src.fetcher import get_fetcher
-from src.summarizer.ai import ArticleSummarizer
+from src.fetcher.models import Article
 from src.grouper.topic import ArticleGrouper
 from src.notifier import get_notifier
 from src.storage.json_store import JSONStore
-from src.fetcher.models import Article
-import httpx
-import trafilatura
+from src.summarizer.ai import ArticleSummarizer
 
 
 class DigestRunner:
@@ -92,16 +92,22 @@ class DigestRunner:
                 message_id = await notifier.send(groups)
                 print(f"Digest sent via {self.config.notifier.type}")
 
-                source_names = list(set(a.source for topic in groups.values() for articles in topic.values() for a in articles))
-                self.store.record_digest(sum(len(a) for topic in groups.values() for a in topic.values()), source_names, message_id)
+                all_articles = [
+                    a for topic in groups.values() for articles in topic.values() for a in articles
+                ]
+                source_names = list(set(a.source for a in all_articles))
+                self.store.record_digest(len(all_articles), source_names, message_id)
                 self._clear_cache()
             except Exception as e:
                 print(f"\nNotification failed: {e}")
                 print(f"Digest saved to cache ({self.CACHE_FILE}). Run 'digest resend' to retry.")
         else:
             self._print_digest(groups)
-            source_names = list(set(a.source for topic in groups.values() for articles in topic.values() for a in articles))
-            self.store.record_digest(sum(len(a) for topic in groups.values() for a in topic.values()), source_names, "console")
+            all_articles = [
+                a for topic in groups.values() for articles in topic.values() for a in articles
+            ]
+            source_names = list(set(a.source for a in all_articles))
+            self.store.record_digest(len(all_articles), source_names, "console")
             self._clear_cache()
 
     def _article_to_dict(self, article: Article) -> dict:
@@ -120,6 +126,7 @@ class DigestRunner:
 
     def _dict_to_article(self, d: dict) -> Article:
         from datetime import datetime
+
         published = None
         if d.get("published_at"):
             try:
@@ -139,7 +146,7 @@ class DigestRunner:
             metadata=d.get("metadata", {}),
         )
 
-    def _save_cache(self, groups: dict, articles: List[Article]) -> None:
+    def _save_cache(self, groups: dict, articles: list[Article]) -> None:
         """Save processed digest to cache for retry."""
         Path("data").mkdir(parents=True, exist_ok=True)
         cache = {
@@ -177,7 +184,7 @@ class DigestRunner:
         if path.exists():
             path.unlink()
 
-    async def _fetch_all(self) -> List[Article]:
+    async def _fetch_all(self) -> list[Article]:
         """Fetch articles from all configured sources."""
         all_articles = []
         for source in self.config.sources:
@@ -196,7 +203,7 @@ class DigestRunner:
 
         return all_articles
 
-    def _deduplicate(self, articles: List[Article]) -> List[Article]:
+    def _deduplicate(self, articles: list[Article]) -> list[Article]:
         """Remove duplicate articles by URL."""
         seen = set()
         unique = []
@@ -206,7 +213,7 @@ class DigestRunner:
                 unique.append(article)
         return unique
 
-    async def _fetch_content(self, articles: List[Article]) -> List[Article]:
+    async def _fetch_content(self, articles: list[Article]) -> list[Article]:
         """Fetch article content from URLs for articles with no body text."""
         async with httpx.AsyncClient(timeout=10.0) as client:
             tasks = []
@@ -236,7 +243,7 @@ class DigestRunner:
             print(f"  Failed to fetch content for '{article.title}': {e}")
         return article
 
-    def _score_articles(self, articles: List[Article]) -> List[Article]:
+    def _score_articles(self, articles: list[Article]) -> list[Article]:
         """Score articles based on user preferences."""
         for article in articles:
             score = 0
@@ -261,15 +268,27 @@ class DigestRunner:
         if n.type == "discord":
             if not n.webhook_url:
                 return None
-            return get_notifier("discord", webhook_url=n.webhook_url, ping=getattr(n, "discord_ping", ""))
+            return get_notifier(
+                "discord",
+                webhook_url=n.webhook_url,
+                ping=getattr(n, "discord_ping", ""),
+            )
         elif n.type == "ntfy":
             if not n.ntfy_topic:
                 return None
-            return get_notifier("ntfy", ntfy_url=n.ntfy_url, topic=n.ntfy_topic)
+            return get_notifier(
+                "ntfy",
+                ntfy_url=n.ntfy_url,
+                topic=n.ntfy_topic,
+            )
         elif n.type == "telegram":
             if not n.telegram_bot_token or not n.telegram_chat_id:
                 return None
-            return get_notifier("telegram", bot_token=n.telegram_bot_token, chat_id=n.telegram_chat_id)
+            return get_notifier(
+                "telegram",
+                bot_token=n.telegram_bot_token,
+                chat_id=n.telegram_chat_id,
+            )
         else:
             raise ValueError(f"Unknown notifier type: {n.type}")
 

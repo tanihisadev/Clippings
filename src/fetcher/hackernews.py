@@ -1,7 +1,8 @@
 import hashlib
-import httpx
 from datetime import datetime
-from typing import List
+
+import httpx
+
 from src.fetcher.base import BaseFetcher
 from src.fetcher.models import Article
 
@@ -11,7 +12,7 @@ class HackerNewsFetcher(BaseFetcher):
 
     API_BASE = "https://hacker-news.firebaseio.com/v0"
 
-    async def fetch(self, max_articles: int = 10) -> List[Article]:
+    async def fetch(self, max_articles: int = 10) -> list[Article]:
         async with httpx.AsyncClient() as client:
             top_ids = await self._get_top_ids(client, max_articles)
             articles = []
@@ -26,19 +27,21 @@ class HackerNewsFetcher(BaseFetcher):
                 if item.get("time"):
                     published = datetime.fromtimestamp(item["time"])
 
-                articles.append(Article(
-                    id=article_id,
-                    title=item.get("title", ""),
-                    url=item.get("url", ""),
-                    source="hackernews",
-                    content=item.get("text", "") or "",
-                    published_at=published,
-                    metadata={"score": item.get("score", 0), "by": item.get("by", "")},
-                ))
+                articles.append(
+                    Article(
+                        id=article_id,
+                        title=item.get("title", ""),
+                        url=item.get("url", ""),
+                        source="hackernews",
+                        content=item.get("text", "") or "",
+                        published_at=published,
+                        metadata={"score": item.get("score", 0), "by": item.get("by", "")},
+                    )
+                )
 
         return articles
 
-    async def _get_top_ids(self, client: httpx.AsyncClient, count: int) -> List[int]:
+    async def _get_top_ids(self, client: httpx.AsyncClient, count: int) -> list[int]:
         resp = await client.get(f"{self.API_BASE}/topstories.json")
         resp.raise_for_status()
         ids = resp.json()

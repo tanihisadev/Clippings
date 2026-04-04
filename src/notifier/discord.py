@@ -1,7 +1,7 @@
 import httpx
-from typing import Dict, List
-from src.notifier.base import BaseNotifier
+
 from src.fetcher.models import Article
+from src.notifier.base import BaseNotifier
 
 
 class DiscordNotifier(BaseNotifier):
@@ -20,7 +20,7 @@ class DiscordNotifier(BaseNotifier):
             return f"{self.ping} "
         return ""
 
-    async def send(self, groups: Dict[str, Dict[str, List[Article]]]) -> str:
+    async def send(self, groups: dict[str, dict[str, list[Article]]]) -> str:
         embeds = []
 
         for topic, sources in groups.items():
@@ -39,7 +39,13 @@ class DiscordNotifier(BaseNotifier):
             embeds.append(embed)
 
         if not embeds:
-            embeds = [{"title": "Clippings", "description": "No articles found.", "color": 0x5865F2}]
+            embeds = [
+                {
+                    "title": "Clippings",
+                    "description": "No articles found.",
+                    "color": 0x5865F2,
+                }
+            ]
 
         ping = self._ping_text()
         payload = {

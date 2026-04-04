@@ -1,6 +1,7 @@
 import json
+
 import litellm
-from typing import Dict, List, Optional
+
 from src.fetcher.models import Article
 
 
@@ -12,7 +13,7 @@ class ArticleGrouper:
         model: str = "llama3.1",
         base_url: str = "http://localhost:11434",
         api_key: str = "",
-        categories: Optional[List[str]] = None,
+        categories: list[str] | None = None,
     ):
         self.model = model
         self.base_url = base_url
@@ -35,24 +36,26 @@ class ArticleGrouper:
         else:
             litellm.api_key = "not-needed"
 
-    async def group(self, articles: List[Article]) -> Dict[str, List[Article]]:
+    async def group(self, articles: list[Article]) -> dict[str, list[Article]]:
         """Assign each article to one of the fixed categories."""
         if not articles:
             return {}
 
         categories_str = ", ".join(self.categories)
         articles_list = "\n".join(
-            f"- ID: {a.id}, Title: {a.title}, Source: {a.source}"
-            for a in articles
+            f"- ID: {a.id}, Title: {a.title}, Source: {a.source}" for a in articles
         )
 
-        system_prompt = f"""You are a news categorization assistant. Assign each article to EXACTLY ONE of these categories:
-{categories_str}
-
-Return ONLY valid JSON in this format:
-{{"article_id": "Category", "article_id2": "Category2"}}
-
-Use the exact category names listed above. Do not invent new categories. Do not include any explanation."""
+        system_prompt = (
+            "You are a news categorization assistant. "
+            "Assign each article to EXACTLY ONE of these categories:\n"
+            f"{categories_str}\n\n"
+            "Return ONLY valid JSON in this format:\n"
+            '{"article_id": "Category", "article_id2": "Category2"}\n\n'
+            "Use the exact category names listed above. "
+            "Do not invent new categories. "
+            "Do not include any explanation."
+        )
 
         user_prompt = f"""Categorize these articles:
 

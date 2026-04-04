@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, Optional
 
 
 @dataclass
@@ -10,8 +9,8 @@ class Article:
     url: str
     source: str
     content: str
-    published_at: Optional[datetime] = None
+    published_at: datetime | None = None
     summary: str = ""
     topic: str = ""
     score: int = 0
-    metadata: Dict = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)

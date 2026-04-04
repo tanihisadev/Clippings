@@ -1,20 +1,29 @@
 import litellm
-from typing import List
+
 from src.fetcher.models import Article
 
 
 class ArticleSummarizer:
     """Summarize articles using LiteLLM (supports Ollama, OpenAI, Anthropic, etc.)."""
 
-    SYSTEM_PROMPT = """You are a news summarization assistant. Summarize each article in 2-3 sentences.
-Be concise, factual, and capture the key points. Do not add opinions or commentary."""
+    SYSTEM_PROMPT = (
+        "You are a news summarization assistant. "
+        "Summarize each article in 2-3 sentences. "
+        "Be concise, factual, and capture the key points. "
+        "Do not add opinions or commentary."
+    )
 
     USER_PROMPT = """Title: {title}
 Content: {content}
 
 Summary:"""
 
-    def __init__(self, model: str = "llama3.1", base_url: str = "http://localhost:11434", api_key: str = ""):
+    def __init__(
+        self,
+        model: str = "llama3.1",
+        base_url: str = "http://localhost:11434",
+        api_key: str = "",
+    ):
         self.model = model
         self.base_url = base_url
         self.api_key = api_key
@@ -47,7 +56,7 @@ Summary:"""
         article.summary = response.choices[0].message.content.strip()
         return article
 
-    async def summarize_batch(self, articles: List[Article]) -> List[Article]:
+    async def summarize_batch(self, articles: list[Article]) -> list[Article]:
         """Summarize multiple articles."""
         results = []
         for article in articles:

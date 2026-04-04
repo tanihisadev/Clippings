@@ -1,6 +1,7 @@
-import click
 import asyncio
-from pathlib import Path
+
+import click
+
 from src.config import Config
 from src.scheduler.runner import DigestRunner
 from src.scheduler.scheduler import DigestScheduler
@@ -19,7 +20,10 @@ def init():
     click.echo("=== Clippings Configuration ===\n")
 
     click.echo("AI Backend:")
-    provider = click.prompt("  Provider (ollama/openai/anthropic/openai-compatible)", default="ollama")
+    provider = click.prompt(
+        "  Provider (ollama/openai/anthropic/openai-compatible)",
+        default="ollama",
+    )
     base_url = click.prompt("  Base URL", default="http://localhost:11434")
     model = click.prompt("  Model", default="llama3.1")
     api_key = click.prompt("  API Key (leave empty for local)", default="", hide_input=True)
@@ -39,9 +43,23 @@ def init():
 
         if source_type == "rss":
             url = click.prompt("  RSS feed URL")
-            sources.append({"type": source_type, "name": name, "url": url, "max_articles": max_articles})
+            sources.append(
+                {
+                    "type": source_type,
+                    "name": name,
+                    "url": url,
+                    "max_articles": max_articles,
+                }
+            )
         else:
-            sources.append({"type": source_type, "name": name, "url": None, "max_articles": max_articles})
+            sources.append(
+                {
+                    "type": source_type,
+                    "name": name,
+                    "url": None,
+                    "max_articles": max_articles,
+                }
+            )
 
     click.echo("\nSchedule:")
     time = click.prompt("  Digest time (HH:MM)", default="08:00")
@@ -72,6 +90,7 @@ def init():
     config.sources = []
     for s in sources:
         from src.config import SourceConfig
+
         config.sources.append(SourceConfig(**s))
     config.schedule.time = time
     config.schedule.timezone = timezone
@@ -83,7 +102,7 @@ def init():
     config.notifier.telegram_chat_id = telegram_chat_id
 
     config.save()
-    click.echo(f"\nConfiguration saved to config.yaml")
+    click.echo("\nConfiguration saved to config.yaml")
 
 
 @cli.command()
@@ -121,19 +140,26 @@ def status():
 def preferences():
     """View learned preferences."""
     store = JSONStore()
-    prefs = store.load("preferences", {
-        "liked_categories": [],
-        "disliked_categories": [],
-        "liked_sources": [],
-        "disliked_sources": [],
-        "article_feedback": [],
-    })
+    prefs = store.load(
+        "preferences",
+        {
+            "liked_categories": [],
+            "disliked_categories": [],
+            "liked_sources": [],
+            "disliked_sources": [],
+            "article_feedback": [],
+        },
+    )
 
     click.echo("=== Learned Preferences ===\n")
-    click.echo(f"Liked categories: {', '.join(prefs.get('liked_categories', []) or ['none'])}")
-    click.echo(f"Disliked categories: {', '.join(prefs.get('disliked_categories', []) or ['none'])}")
-    click.echo(f"Liked sources: {', '.join(prefs.get('liked_sources', []) or ['none'])}")
-    click.echo(f"Disliked sources: {', '.join(prefs.get('disliked_sources', []) or ['none'])}")
+    liked_cats = prefs.get("liked_categories", []) or ["none"]
+    disliked_cats = prefs.get("disliked_categories", []) or ["none"]
+    liked_srcs = prefs.get("liked_sources", []) or ["none"]
+    disliked_srcs = prefs.get("disliked_sources", []) or ["none"]
+    click.echo(f"Liked categories: {', '.join(liked_cats)}")
+    click.echo(f"Disliked categories: {', '.join(disliked_cats)}")
+    click.echo(f"Liked sources: {', '.join(liked_srcs)}")
+    click.echo(f"Disliked sources: {', '.join(disliked_srcs)}")
 
     feedback = prefs.get("article_feedback", [])
     click.echo(f"\nTotal feedback entries: {len(feedback)}")
@@ -150,7 +176,7 @@ def preferences():
 def serve():
     """Start the scheduler and optional web UI."""
     config = Config.load()
-    click.echo(f"Starting Clippings scheduler...")
+    click.echo("Starting Clippings scheduler...")
     click.echo(f"  Sources: {len(config.sources)}")
     click.echo(f"  Notifier: {config.notifier.type}")
     click.echo(f"  AI: {config.ai.provider}/{config.ai.model}")

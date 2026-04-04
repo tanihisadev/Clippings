@@ -1,7 +1,7 @@
 import httpx
-from typing import Dict, List
-from src.notifier.base import BaseNotifier
+
 from src.fetcher.models import Article
+from src.notifier.base import BaseNotifier
 
 
 class NtfyNotifier(BaseNotifier):
@@ -11,7 +11,7 @@ class NtfyNotifier(BaseNotifier):
         self.ntfy_url = ntfy_url.rstrip("/")
         self.topic = topic
 
-    async def send(self, groups: Dict[str, Dict[str, List[Article]]]) -> str:
+    async def send(self, groups: dict[str, dict[str, list[Article]]]) -> str:
         message = "📰 *Clippings*\n\n"
 
         for topic_name, sources in groups.items():

@@ -1,6 +1,6 @@
-import yaml
 from pathlib import Path
-from typing import List, Optional
+
+import yaml
 
 
 class AIConfig:
@@ -22,7 +22,7 @@ class SourceConfig:
         self,
         type: str,
         name: str,
-        url: Optional[str] = None,
+        url: str | None = None,
         max_articles: int = 10,
     ):
         self.type = type
@@ -42,11 +42,11 @@ class NotifierConfig:
     def __init__(
         self,
         type: str = "discord",
-        webhook_url: Optional[str] = None,
+        webhook_url: str | None = None,
         ntfy_url: str = "https://ntfy.sh",
-        ntfy_topic: Optional[str] = None,
-        telegram_bot_token: Optional[str] = None,
-        telegram_chat_id: Optional[str] = None,
+        ntfy_topic: str | None = None,
+        telegram_bot_token: str | None = None,
+        telegram_chat_id: str | None = None,
         discord_ping: str = "",
     ):
         self.type = type
@@ -61,10 +61,10 @@ class NotifierConfig:
 class PreferencesConfig:
     def __init__(
         self,
-        liked_categories: Optional[List[str]] = None,
-        disliked_categories: Optional[List[str]] = None,
-        liked_sources: Optional[List[str]] = None,
-        disliked_sources: Optional[List[str]] = None,
+        liked_categories: list[str] | None = None,
+        disliked_categories: list[str] | None = None,
+        liked_sources: list[str] | None = None,
+        disliked_sources: list[str] | None = None,
     ):
         self.liked_categories = liked_categories or []
         self.disliked_categories = disliked_categories or []
@@ -75,12 +75,12 @@ class PreferencesConfig:
 class Config:
     def __init__(
         self,
-        ai: Optional[AIConfig] = None,
-        sources: Optional[List[SourceConfig]] = None,
-        schedule: Optional[ScheduleConfig] = None,
-        notifier: Optional[NotifierConfig] = None,
-        preferences: Optional[PreferencesConfig] = None,
-        categories: Optional[List[str]] = None,
+        ai: AIConfig | None = None,
+        sources: list[SourceConfig] | None = None,
+        schedule: ScheduleConfig | None = None,
+        notifier: NotifierConfig | None = None,
+        preferences: PreferencesConfig | None = None,
+        categories: list[str] | None = None,
     ):
         self.ai = ai or AIConfig()
         self.sources = sources or []
@@ -106,7 +106,7 @@ class Config:
             config.save(config_path)
             return config
 
-        with open(config_file, "r") as f:
+        with open(config_file) as f:
             data = yaml.safe_load(f) or {}
 
         ai_data = data.get("ai", {})
@@ -126,7 +126,14 @@ class Config:
 
         categories = data.get("categories")
 
-        return cls(ai_config, sources, schedule_config, notifier_config, preferences_config, categories)
+        return cls(
+            ai_config,
+            sources,
+            schedule_config,
+            notifier_config,
+            preferences_config,
+            categories,
+        )
 
     def save(self, config_path: str = "config.yaml") -> None:
         config_dict = {
