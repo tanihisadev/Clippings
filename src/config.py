@@ -123,6 +123,12 @@ class Config:
         schedule_config = ScheduleConfig(**schedule_data) if schedule_data else ScheduleConfig()
 
         notifier_data = data.get("notifier", {})
+        if notifier_data and "discord_channel_id" in notifier_data:
+            cid = notifier_data["discord_channel_id"]
+            if isinstance(cid, str) and cid:
+                notifier_data["discord_channel_id"] = int(cid)
+            elif cid == 0 or cid is None:
+                notifier_data["discord_channel_id"] = None
         notifier_config = NotifierConfig(**notifier_data) if notifier_data else NotifierConfig()
 
         prefs_data = data.get("preferences", {})
