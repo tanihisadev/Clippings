@@ -1,3 +1,6 @@
+PERSONAL PROOF OF CONCEPT PROJECT - WILL REFACTOR LATER.
+
+
 # Clippings
 
 A self-hosted, AI-powered daily news digest that aggregates articles from configurable sources, summarizes them, groups by topic, and delivers them to your preferred notification channel. Over time, it learns your preferences through like/dislike feedback.
