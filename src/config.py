@@ -47,6 +47,8 @@ class NotifierConfig:
         ntfy_topic: str | None = None,
         telegram_bot_token: str | None = None,
         telegram_chat_id: str | None = None,
+        discord_bot_token: str | None = None,
+        discord_channel_id: int | None = None,
         discord_ping: str = "",
     ):
         self.type = type
@@ -55,6 +57,8 @@ class NotifierConfig:
         self.ntfy_topic = ntfy_topic
         self.telegram_bot_token = telegram_bot_token
         self.telegram_chat_id = telegram_chat_id
+        self.discord_bot_token = discord_bot_token
+        self.discord_channel_id = discord_channel_id
         self.discord_ping = discord_ping
 
 
@@ -159,6 +163,8 @@ class Config:
                 "ntfy_topic": self.notifier.ntfy_topic,
                 "telegram_bot_token": self.notifier.telegram_bot_token,
                 "telegram_chat_id": self.notifier.telegram_chat_id,
+                "discord_bot_token": self.notifier.discord_bot_token,
+                "discord_channel_id": self.notifier.discord_channel_id,
                 "discord_ping": self.notifier.discord_ping,
             },
             "categories": self.categories,

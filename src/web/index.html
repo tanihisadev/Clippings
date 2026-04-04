@@ -120,8 +120,10 @@
                     </div>
                 </div>
                 <div id="notifier-discord">
-                    <label>Webhook URL</label>
-                    <input type="text" id="notifier-webhook" placeholder="https://discord.com/api/webhooks/...">
+                    <label>Bot Token</label>
+                    <input type="text" id="discord-bot-token" placeholder="MTIz...">
+                    <label>Channel ID</label>
+                    <input type="text" id="discord-channel-id" placeholder="1234567890" type="number">
                 </div>
                 <div id="notifier-ntfy" style="display:none">
                     <label>ntfy Topic</label>
@@ -183,7 +185,8 @@
 
                 document.getElementById('notifier-type').value = config.notifier.type;
                 document.getElementById('discord-ping').value = config.notifier.discord_ping || '';
-                document.getElementById('notifier-webhook').value = config.notifier.webhook_url || '';
+                document.getElementById('discord-bot-token').value = config.notifier.discord_bot_token || '';
+                document.getElementById('discord-channel-id').value = config.notifier.discord_channel_id || '';
                 document.getElementById('ntfy-topic').value = config.notifier.ntfy_topic || '';
                 document.getElementById('telegram-token').value = config.notifier.telegram_bot_token || '';
                 document.getElementById('telegram-chat-id').value = config.notifier.telegram_chat_id || '';
@@ -242,7 +245,8 @@
                 },
                 notifier: {
                     type: document.getElementById('notifier-type').value,
-                    webhook_url: document.getElementById('notifier-webhook').value || null,
+                    discord_bot_token: document.getElementById('discord-bot-token').value || null,
+                    discord_channel_id: parseInt(document.getElementById('discord-channel-id').value) || null,
                     discord_ping: document.getElementById('discord-ping').value,
                     ntfy_url: 'https://ntfy.sh',
                     ntfy_topic: document.getElementById('ntfy-topic').value || null,

@@ -50,6 +50,11 @@ notifier:
   # Discord ping: who to @ when posting
   # Options: "everyone", "here", "<@USER_ID>", "<@&ROLE_ID>", or "" for no ping
   discord_ping: "everyone"
+  # Discord bot: create at https://discord.com/developers/applications
+  # Enable "Message Content Intent" and "Server Members Intent"
+  discord_bot_token: ""
+  # Discord channel ID (enable dev mode, right-click channel → Copy ID)
+  discord_channel_id: 0
 
   # ntfy.sh: just pick a topic name
   ntfy_url: "https://ntfy.sh"

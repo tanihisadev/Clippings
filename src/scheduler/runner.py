@@ -273,11 +273,12 @@ class DigestRunner:
         """Create the appropriate notifier based on config."""
         n = self.config.notifier
         if n.type == "discord":
-            if not n.webhook_url:
+            if not n.discord_bot_token or not n.discord_channel_id:
                 return None
             return get_notifier(
                 "discord",
-                webhook_url=n.webhook_url,
+                bot_token=n.discord_bot_token,
+                channel_id=n.discord_channel_id,
                 ping=getattr(n, "discord_ping", ""),
             )
         elif n.type == "ntfy":

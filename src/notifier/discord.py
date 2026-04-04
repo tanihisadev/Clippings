@@ -1,63 +1,102 @@
-import httpx
+import threading
+
+import discord
+from discord.ext import commands
 
 from src.fetcher.models import Article
 from src.notifier.base import BaseNotifier
+from src.storage.json_store import JSONStore
+
+_intents = discord.Intents.default()
+_intents.message_content = True
+_intents.reactions = True
+
+_bot = commands.Bot(command_prefix="!", intents=_intents)
+_store = JSONStore()
+_sent_messages = []
+_ready_event = threading.Event()
+
+
+@_bot.event
+async def on_ready():
+    _ready_event.set()
+
+
+@_bot.event
+async def on_raw_reaction_add(payload):
+    if payload.user_id == _bot.user.id:
+        return
+    if payload.emoji.name not in ("\U0001f44d", "\U0001f44e"):
+        return
+
+    for msg_info in _sent_messages:
+        if msg_info["message_id"] == payload.message_id:
+            action = "like" if payload.emoji.name == "\U0001f44d" else "dislike"
+            _store.update_preferences(
+                article_id=msg_info["article_id"],
+                action=action,
+                source=msg_info["source"],
+                category=msg_info["category"],
+            )
+            print(f"  Feedback: {action} -> {msg_info['category']}/{msg_info['source']}")
+            break
 
 
 class DiscordNotifier(BaseNotifier):
-    """Send digest via Discord webhook."""
+    """Send digest via Discord bot with per-article reactions."""
 
-    def __init__(self, webhook_url: str, ping: str = ""):
-        self.webhook_url = webhook_url
+    def __init__(self, bot_token: str, channel_id: int, ping: str = ""):
+        self.bot_token = bot_token
+        self.channel_id = channel_id
         self.ping = ping
 
-    def _ping_text(self) -> str:
-        if self.ping == "everyone":
-            return "@everyone "
-        elif self.ping == "here":
-            return "@here "
-        elif self.ping.startswith("<@") or self.ping.startswith("<@&"):
-            return f"{self.ping} "
-        return ""
-
     async def send(self, groups: dict[str, dict[str, list[Article]]]) -> str:
-        embeds = []
+        _sent_messages.clear()
+        _ready_event.clear()
 
-        for topic, sources in groups.items():
-            source_text = ""
+        def start_bot():
+            _bot.run(self.bot_token)
+
+        thread = threading.Thread(target=start_bot, daemon=True)
+        thread.start()
+
+        _ready_event.wait(timeout=15)
+
+        channel = _bot.get_channel(self.channel_id)
+        if not channel:
+            channel = await _bot.fetch_channel(self.channel_id)
+
+        if self.ping == "everyone":
+            await channel.send(
+                "@everyone **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+            )
+        elif self.ping == "here":
+            await channel.send(
+                "@here **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+            )
+        elif self.ping:
+            await channel.send(
+                f"{self.ping} **Clippings** — react \U0001f44d/\U0001f44e on each article to train preferences"
+            )
+
+        for category, sources in groups.items():
             for source_name, articles in sources.items():
-                source_text += f"\n**{source_name}**\n"
                 for article in articles:
-                    summary_preview = article.summary[:150] if article.summary else "No summary"
-                    source_text += f"• [{article.title}]({article.url})\n  _{summary_preview}_\n\n"
+                    lines = []
+                    if article.summary:
+                        lines.append(f"_ {article.summary}")
+                    lines.append(f"[{article.title}]({article.url})")
+                    content = "\n".join(lines)
 
-            embed = {
-                "title": f"📰 {topic}",
-                "description": source_text[:4096],
-                "color": 0x5865F2,
-            }
-            embeds.append(embed)
+                    msg = await channel.send(content)
+                    await msg.add_reaction("\U0001f44d")
+                    await msg.add_reaction("\U0001f44e")
 
-        if not embeds:
-            embeds = [
-                {
-                    "title": "Clippings",
-                    "description": "No articles found.",
-                    "color": 0x5865F2,
-                }
-            ]
-
-        ping = self._ping_text()
-        payload = {
-            "content": f"{ping}**Clippings** 👍/👎 react to train your preferences",
-            "embeds": embeds,
-            "allowed_mentions": {
-                "parse": ["everyone", "users", "roles"],
-            },
-        }
-
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(self.webhook_url, json=payload)
-            resp.raise_for_status()
+                    _sent_messages.append({
+                        "message_id": msg.id,
+                        "category": category,
+                        "source": source_name,
+                        "article_id": article.id,
+                    })
 
         return "discord"
