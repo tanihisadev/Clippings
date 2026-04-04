@@ -1,0 +1,12 @@
+services:
+  digest:
+    build: .
+    container_name: clippings
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+    environment:
+      - TZ=UTC
+    ports:
+      - "8000:8000"

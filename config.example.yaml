@@ -1,0 +1,79 @@
+# Clippings Configuration
+# Copy this file to config.yaml and fill in your values.
+# Do NOT commit config.yaml with real credentials.
+
+ai:
+  # ollama, openai, anthropic, openai-compatible
+  provider: ollama
+  # URL to your AI backend
+  # Ollama: http://localhost:11434
+  # llama.cpp server: http://localhost:8080/v1
+  # OpenAI: leave empty for default
+  base_url: http://localhost:11434
+  # Model name (use "default" for llama.cpp server)
+  model: llama3.1
+  # API key (not needed for local backends)
+  api_key: ""
+
+sources:
+  # Hacker News top stories
+  - type: hackernews
+    name: Hacker News
+    max_articles: 10
+
+  # Generic RSS feed
+  - type: rss
+    name: BBC News
+    url: http://feeds.bbci.co.uk/news/rss.xml
+    max_articles: 10
+
+  # BBC News (uses RSS under the hood)
+  # - type: bbc
+  #   name: BBC Tech
+  #   url: http://feeds.bbci.co.uk/news/technology/rss.xml
+  #   max_articles: 10
+
+schedule:
+  # 24-hour format
+  time: "08:00"
+  # Any valid timezone name
+  timezone: UTC
+  # Max articles to include in the digest (after scoring/ranking)
+  max_articles: 20
+
+notifier:
+  # discord, ntfy, telegram
+  type: discord
+
+  # Discord: create a webhook in your channel settings
+  webhook_url: ""
+  # Discord ping: who to @ when posting
+  # Options: "everyone", "here", "<@USER_ID>", "<@&ROLE_ID>", or "" for no ping
+  discord_ping: "everyone"
+
+  # ntfy.sh: just pick a topic name
+  ntfy_url: "https://ntfy.sh"
+  ntfy_topic: ""
+
+  # Telegram: create a bot via @BotFather
+  telegram_bot_token: ""
+  telegram_chat_id: ""
+
+# Fixed categories the AI sorts articles into.
+# You can add, remove, or rename these. The AI must use these exact names.
+categories:
+  - Technology
+  - Science
+  - Politics
+  - Business
+  - Health
+  - Entertainment
+  - Sports
+  - Other
+
+preferences:
+  # Auto-populated over time via like/dislike feedback
+  liked_categories: []
+  disliked_categories: []
+  liked_sources: []
+  disliked_sources: []
