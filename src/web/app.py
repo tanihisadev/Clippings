@@ -80,7 +80,7 @@ async def get_config():
             "type": config.notifier.type,
             "webhook_url": config.notifier.webhook_url,
             "discord_bot_token": config.notifier.discord_bot_token,
-            "discord_channel_id": config.notifier.discord_channel_id,
+            "discord_channel_id": str(config.notifier.discord_channel_id) if config.notifier.discord_channel_id else None,
             "discord_ping": config.notifier.discord_ping,
             "ntfy_url": config.notifier.ntfy_url,
             "ntfy_topic": config.notifier.ntfy_topic,
@@ -117,7 +117,9 @@ async def save_config(data: dict):
         config.notifier.webhook_url = data["notifier"].get("webhook_url")
         config.notifier.discord_bot_token = data["notifier"].get("discord_bot_token")
         cid = data["notifier"].get("discord_channel_id")
+        print(f"  Save config: discord_channel_id raw={cid!r} (type={type(cid).__name__})")
         config.notifier.discord_channel_id = int(cid) if cid else None
+        print(f"  Save config: discord_channel_id after conversion={config.notifier.discord_channel_id!r}")
         config.notifier.discord_ping = data["notifier"].get("discord_ping", "")
         config.notifier.ntfy_url = data["notifier"].get("ntfy_url", "https://ntfy.sh")
         config.notifier.ntfy_topic = data["notifier"].get("ntfy_topic")

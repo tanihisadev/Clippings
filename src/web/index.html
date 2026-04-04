@@ -186,7 +186,7 @@
                 document.getElementById('notifier-type').value = config.notifier.type;
                 document.getElementById('discord-ping').value = config.notifier.discord_ping || '';
                 document.getElementById('discord-bot-token').value = config.notifier.discord_bot_token || '';
-                document.getElementById('discord-channel-id').value = config.notifier.discord_channel_id || '';
+                document.getElementById('discord-channel-id').value = config.notifier.discord_channel_id ? String(config.notifier.discord_channel_id) : '';
                 document.getElementById('ntfy-topic').value = config.notifier.ntfy_topic || '';
                 document.getElementById('telegram-token').value = config.notifier.telegram_bot_token || '';
                 document.getElementById('telegram-chat-id').value = config.notifier.telegram_chat_id || '';
