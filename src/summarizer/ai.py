@@ -16,10 +16,7 @@ class ArticleSummarizer:
     """Summarize articles using LiteLLM (supports Ollama, llama.cpp, OpenAI, Anthropic, etc.)."""
 
     SYSTEM_PROMPT = (
-        "You are a news summarization assistant. "
-        "Summarize each article in 2-3 sentences. "
-        "Be concise, factual, and capture the key points. "
-        "Do not add opinions or commentary."
+        "Summarize this article in 1-2 sentences. Be concise and factual."
     )
 
     USER_PROMPT = """Title: {title}
@@ -73,7 +70,7 @@ Summary:"""
                 {"role": "system", "content": self.SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ],
-            max_tokens=200,
+            max_tokens=100,
             temperature=0.3,
         )
 

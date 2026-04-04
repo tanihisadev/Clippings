@@ -114,11 +114,14 @@ class DiscordNotifier(BaseNotifier):
             for category, sources in groups.items():
                 for source_name, articles in sources.items():
                     for article in articles:
-                        lines = []
-                        if article.summary:
-                            lines.append(f"_ {article.summary}")
-                        lines.append(f"[{article.title}]({article.url})")
-                        content = "\n".join(lines)
+                        summary = article.summary or ""
+                        if len(summary) > 120:
+                            summary = summary[:117] + "..."
+
+                        content = f"**{article.title}**"
+                        if summary:
+                            content += f"\n{summary}"
+                        content += f"\n{article.url}"
 
                         msg = await channel.send(content)
                         await msg.add_reaction("\U0001f44d")
