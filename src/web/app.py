@@ -1,5 +1,7 @@
 import asyncio
+import sys
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -14,11 +16,39 @@ app = FastAPI(title="Clippings", docs_url="/api/docs")
 
 CONFIG_PATH = "config.yaml"
 
+_run_status = {"running": False, "log": [], "started_at": None}
+
+
+class LogCapture:
+    def __init__(self):
+        self.log = []
+
+    def write(self, text):
+        self.log.append(text.strip())
+        _run_status["log"] = self.log[-50:]
+
+    def flush(self):
+        pass
+
 
 def _run_digest_sync():
-    config = Config.load(CONFIG_PATH)
-    runner = DigestRunner(config)
-    asyncio.run(runner.run())
+    _run_status["running"] = True
+    _run_status["log"] = []
+    _run_status["started_at"] = datetime.now(UTC).isoformat()
+
+    capture = LogCapture()
+    old_stdout = sys.stdout
+    sys.stdout = capture
+
+    try:
+        config = Config.load(CONFIG_PATH)
+        runner = DigestRunner(config)
+        asyncio.run(runner.run())
+    except Exception as e:
+        capture.write(f"Error: {e}")
+    finally:
+        sys.stdout = old_stdout
+        _run_status["running"] = False
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,9 +134,16 @@ async def save_config(data: dict):
 
 @app.post("/api/run")
 async def trigger_run():
+    if _run_status["running"]:
+        raise HTTPException(status_code=409, detail="Digest already running")
     t = threading.Thread(target=_run_digest_sync, daemon=True)
     t.start()
     return {"status": "ok"}
+
+
+@app.get("/api/run-status")
+async def run_status():
+    return _run_status
 
 
 @app.get("/api/status")
