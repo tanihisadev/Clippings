@@ -7,8 +7,8 @@ from fastapi.responses import HTMLResponse
 
 from src.config import Config
 from src.scheduler.runner import DigestRunner
-from src.storage.json_store import JSONStore
 from src.scheduler.scheduler import DigestScheduler
+from src.storage.json_store import JSONStore
 
 app = FastAPI(title="Clippings", docs_url="/api/docs")
 
