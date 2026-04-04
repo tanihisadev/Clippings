@@ -6,44 +6,66 @@ A self-hosted, AI-powered daily news digest that aggregates articles from config
 
 - **Configurable sources** — RSS feeds, Hacker News, BBC News, and more
 - **AI-powered summaries** — Every article summarized by an LLM
-- **Topic grouping** — Articles grouped into categories by AI
-- **Preference learning** — Like/dislike articles to train your feed
+- **Fixed categories** — Articles sorted into user-defined categories (Technology, Science, Politics, etc.)
+- **Preference learning** — Like/dislike to train your feed
 - **Multiple AI backends** — Ollama, llama.cpp, OpenAI, Anthropic, or any OpenAI-compatible API
 - **Multiple notification channels** — Discord, ntfy.sh, or Telegram
-- **Self-hosted** — Runs locally or in Docker, zero cloud dependency
+- **Self-hosted** — Runs anywhere, zero cloud dependency
 
 ## Quick Start
 
 ### 1. Install
 
+**Docker (recommended):**
+
 ```bash
-# Clone the repo
 git clone https://github.com/yourusername/clippings.git
 cd clippings
+docker compose up -d
+```
 
-# Install dependencies
-pip install .
+Open `http://localhost:8000` in your browser to configure everything.
+
+**Native (pip):**
+
+Requires Python 3.11+, pip, and build tools for compiling dependencies:
+
+```bash
+# Debian/Ubuntu
+apt install python3 python3-pip python3-venv gcc libxml2-dev libxslt-dev
+
+git clone https://github.com/yourusername/clippings.git
+cd clippings
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+cp config.example.yaml config.yaml
+```
+
+Edit `config.yaml`, then run:
+
+```bash
+digest run        # run once
+digest serve      # start daily scheduler
 ```
 
 ### 2. Configure
 
-Run the interactive setup wizard:
-
-```bash
-digest init
-```
-
-Or edit `config.yaml` directly (see [Configuration](#configuration) below).
+See [Configuration](#configuration) below for all options. The quickest way is to edit `config.yaml` directly, or run `digest init` for an interactive wizard (native install only).
 
 ### 3. Run
 
 ```bash
-# Run a digest immediately
-digest run
+# Docker
+docker compose up -d
+# Web UI: http://localhost:8000
 
-# Start the daily scheduler
-digest serve
+# Native
+digest run        # run once
+digest serve      # start scheduler + web UI on :8000
 ```
+
+The web UI at `http://localhost:8000` lets you manage config, sources, categories, and trigger digests from your browser — no SSH needed.
 
 ## Configuration
 
@@ -63,26 +85,41 @@ sources:
     max_articles: 10
   - type: hackernews
     max_articles: 15
-  - type: bbc
-    name: BBC Tech
-    url: http://feeds.bbci.co.uk/news/technology/rss.xml
-    max_articles: 10
 
 schedule:
   time: "08:00"                       # 24h format
   timezone: UTC                       # Any valid timezone
+  max_articles: 20                    # Max articles in the final digest
 
 notifier:
   type: discord                       # discord, ntfy, telegram
   webhook_url: "https://discord.com/api/webhooks/..."
+  discord_ping: "everyone"            # "everyone", "here", "<@USER_ID>", or ""
+
+  # ntfy settings (if type: ntfy)
   ntfy_url: "https://ntfy.sh"
-  ntfy_topic: "my-digest"
+  ntfy_topic: ""
+
+  # telegram settings (if type: telegram)
   telegram_bot_token: ""
   telegram_chat_id: ""
 
+# Fixed categories the AI sorts articles into.
+# You can add, remove, or rename these.
+categories:
+  - Technology
+  - Science
+  - Politics
+  - Business
+  - Health
+  - Entertainment
+  - Sports
+  - Other
+
 preferences:
-  liked_topics: []                    # Auto-populated over time
-  disliked_topics: []
+  # Auto-populated over time via like/dislike feedback
+  liked_categories: []
+  disliked_categories: []
   liked_sources: []
   disliked_sources: []
 ```
@@ -103,7 +140,7 @@ preferences:
 
 ### llama.cpp (Server Mode)
 
-1. Run llama.cpp with its OpenAI-compatible server:
+1. Run llama.cpp server:
    ```bash
    ./llama-server -m your-model.gguf --port 8080
    ```
@@ -112,15 +149,14 @@ preferences:
    ai:
      provider: openai-compatible
      base_url: http://localhost:8080/v1
-     model: your-model
+     model: default
    ```
 
-### Cloud Providers (OpenAI, Anthropic, etc.)
+### Cloud Providers
 
 ```yaml
 ai:
   provider: openai
-  base_url: ""                        # Leave empty for default
   model: gpt-4o
   api_key: "sk-..."
 ```
@@ -129,31 +165,30 @@ ai:
 
 ### Discord
 
-1. Go to your Discord channel → Edit Channel → Integrations → Webhooks
-2. Create a webhook and copy the URL
-3. Set in config:
+1. Channel settings → Integrations → Webhooks → Create webhook
+2. Copy the URL into your config:
    ```yaml
    notifier:
      type: discord
      webhook_url: "https://discord.com/api/webhooks/..."
+     discord_ping: "everyone"
    ```
 
 ### ntfy.sh
 
-1. Choose a topic name (e.g., `my-news-digest`)
-2. Set in config:
+1. Pick a topic name
+2. Configure:
    ```yaml
    notifier:
      type: ntfy
-     ntfy_url: "https://ntfy.sh"      # Or your self-hosted instance
-     ntfy_topic: "my-news-digest"
+     ntfy_topic: "my-clippings"
    ```
 
 ### Telegram
 
-1. Create a bot via [@BotFather](https://t.me/BotFather) and get the token
-2. Get your chat ID (send a message to [@userinfobot](https://t.me/userinfobot))
-3. Set in config:
+1. Create a bot via [@BotFather](https://t.me/BotFather)
+2. Get your chat ID via [@userinfobot](https://t.me/userinfobot)
+3. Configure:
    ```yaml
    notifier:
      type: telegram
@@ -161,7 +196,7 @@ ai:
      telegram_chat_id: "123456789"
    ```
 
-## Adding Custom RSS Sources
+## Adding Sources
 
 Add any RSS feed to the `sources` list:
 
@@ -171,112 +206,33 @@ sources:
     name: Ars Technica
     url: https://arstechnica.com/feed/
     max_articles: 10
-  - type: rss
-    name: The Verge
-    url: https://www.theverge.com/rss/index.xml
-    max_articles: 10
+  - type: hackernews
+    max_articles: 15
 ```
+
+Available source types: `rss`, `hackernews`, `bbc`.
 
 ## How Preference Learning Works
 
-Feedback is tracked at the **source level** (e.g., "hackernews", "BBC News"), not by topic name. This is because the AI generates different topic labels each run ("Technology & AI" vs "Tech" vs "Software"), making topic-based tracking unreliable.
+1. Each digest includes like/dislike options (emoji reactions on Discord, action buttons on ntfy, inline keyboard on Telegram)
+2. Feedback is saved to `data/preferences.json`
+3. After 2+ likes or dislikes from the same source or category, it's added to your preferences
+4. Future digests score articles against your preferences — liked sources/categories are boosted, disliked ones are demoted
+5. View with `digest preferences`
 
-1. Each digest message includes like/dislike options (emoji reactions on Discord, action buttons on ntfy, inline keyboard on Telegram)
-2. When you interact, the feedback is saved to `data/preferences.json` with the article's source
-3. After 2+ likes or dislikes from the same source, it's added to your liked/disliked sources list
-4. Future digests score articles against your preferences — liked sources are boosted, disliked ones are demoted
-5. View your learned preferences anytime with `digest preferences`
+## Running as a Service
 
-## Docker Deployment
-
-```bash
-# Build and run
-docker compose up -d
-
-# View logs
-docker compose logs -f
-
-# Run a digest manually
-docker compose exec digest digest run
-```
-
-Mount your own config and data:
-
-```yaml
-volumes:
-  - ./config.yaml:/app/config.yaml:ro
-  - ./data:/app/data
-```
-
-If using a local AI backend (Ollama/llama.cpp), make sure the container can reach it. You may need to set `base_url` to your host machine's IP or use `network_mode: host`.
-
-## Deploying on Proxmox
-
-### Option 1: LXC + Docker (Recommended)
-
-This runs digest in an isolated container alongside your other services.
-
-**Step 1: Create the LXC**
-
-In the Proxmox web UI:
-1. Create CT → Template: Debian 12
-2. Resources: 2 cores, 4GB RAM, 10GB disk
-3. Network: bridge (vmbr0), DHCP or static IP
-4. Options: Uncheck "Unprivileged container" (easier for Docker)
-
-**Step 2: Install Docker**
-
-SSH into the LXC:
+### Docker
 
 ```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-usermod -aG docker $USER
-```
-
-**Step 3: Deploy digest**
-
-```bash
-# Clone the repo
-git clone https://github.com/yourusername/clippings.git
-cd clippings
-
-# Copy and edit config
-cp config.example.yaml config.yaml
-nano config.yaml
-```
-
-Point `base_url` to your Proxmox host's IP (where Ollama/llama.cpp runs):
-
-```yaml
-ai:
-  base_url: http://192.168.1.100:11434   # Your Proxmox host IP
-  model: llama3.1
-```
-
-```bash
-# Start
 docker compose up -d
 ```
 
-### Option 2: Direct on Proxmox Host
+The container restarts automatically. Config and data persist via volume mounts.
 
-Skip the LXC entirely and run directly on the Proxmox host alongside Ollama/llama.cpp:
+### Native (systemd)
 
 ```bash
-# On the Proxmox host
-apt install python3 python3-pip python3-venv
-git clone https://github.com/yourusername/clippings.git
-cd clippings
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-
-cp config.example.yaml config.yaml
-nano config.yaml  # set base_url to http://localhost:11434
-
-# Run as a systemd service
 cat > /etc/systemd/system/clippings.service << 'EOF'
 [Unit]
 Description=Clippings Scheduler
@@ -284,9 +240,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/root/clippings
-ExecStart=/root/clippings/.venv/bin/digest serve
+User=youruser
+WorkingDirectory=/path/to/clippings
+ExecStart=/path/to/clippings/.venv/bin/digest serve
 Restart=always
 RestartSec=10
 
@@ -297,52 +253,35 @@ EOF
 systemctl enable --now clippings
 ```
 
-### Architecture
+### Remote AI Backend
 
-```
-┌──────────────────────────────────────────────────────┐
-│  Proxmox Host                                        │
-│                                                      │
-│  ┌─────────────────┐    ┌────────────────────────┐   │
-│  │ Ollama /        │    │ LXC (Debian 12)        │   │
-│  │ llama.cpp       │◄───┤                        │   │
-│  │ :11434          │    │  Docker: clippings       │   │
-│  │                 │    │  :8000                 │   │
-│  └─────────────────┘    └────────────────────────┘   │
-│                                                      │
-│  Or run digest directly on host (no LXC needed)      │
-└──────────────────────────────────────────────────────┘
+If your AI backend runs on a different machine (e.g. separate LXC, another server), set `base_url` to its IP:
+
+```yaml
+ai:
+  base_url: http://192.168.1.100:11434
+  model: llama3.1
 ```
 
-## Local Development
-
-```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Run linting
-ruff check .
-
-# Run tests
-pytest
-```
+Both machines must be on the same network.
 
 ## CLI Commands
 
 | Command | Description |
 |---------|-------------|
-| `digest init` | Interactive configuration wizard |
+| `digest init` | Interactive configuration wizard (CLI) |
 | `digest run` | Run the digest pipeline immediately |
 | `digest resend` | Resend last cached digest (skips fetch/summarize) |
 | `digest status` | Show next scheduled run and config summary |
 | `digest preferences` | View learned preferences and feedback history |
-| `digest serve` | Start the daily scheduler |
+| `digest serve` | Start scheduler + web UI on port 8000 |
 
 ## Project Structure
 
 ```
-digest/
+clippings/
 ├── config.yaml                 # User configuration
+├── config.example.yaml         # Template (safe to commit)
 ├── data/                       # JSON storage (auto-created)
 │   ├── preferences.json        # Learned preferences
 │   └── history.json            # Digest run history
@@ -350,27 +289,23 @@ digest/
 │   ├── main.py                 # CLI entry point
 │   ├── config.py               # Config loading/validation
 │   ├── fetcher/                # News source fetchers
-│   │   ├── base.py             # Abstract fetcher interface
-│   │   ├── rss.py              # Generic RSS fetcher
-│   │   ├── hackernews.py       # HN API fetcher
-│   │   └── bbc.py              # BBC News fetcher
-│   ├── summarizer/
-│   │   └── ai.py               # LiteLLM article summarizer
-│   ├── grouper/
-│   │   └── topic.py            # AI-powered topic grouping
-│   ├── notifier/               # Notification channels
-│   │   ├── base.py             # Abstract notifier interface
-│   │   ├── discord.py          # Discord webhook
-│   │   ├── ntfy.py             # ntfy.sh
-│   │   └── telegram.py         # Telegram Bot API
-│   ├── scheduler/
-│   │   ├── runner.py           # Digest pipeline orchestrator
-│   │   └── scheduler.py        # APScheduler daily cron
-│   └── storage/
-│       └── json_store.py       # Thread-safe JSON storage
+│   ├── summarizer/             # AI article summarizer
+│   ├── grouper/                # AI topic categorizer
+│   ├── notifier/               # Discord, ntfy, Telegram
+│   ├── scheduler/              # Pipeline runner + cron
+│   └── storage/                # JSON file storage
 ├── Dockerfile
 ├── docker-compose.yml
 └── pyproject.toml
+```
+
+## Local Development
+
+```bash
+pip install -e ".[dev]"
+ruff check .
+ruff format .
+pytest
 ```
 
 ## License

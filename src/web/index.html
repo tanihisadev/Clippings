@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clippings</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 2rem; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+        h1 span { color: #5865F2; }
+        h2 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; }
+        .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.25rem; font-size: 0.85rem; color: #888; }
+        input, select { width: 100%; padding: 0.5rem 0.75rem; background: #111; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-size: 0.9rem; margin-bottom: 0.75rem; }
+        input:focus, select:focus { outline: none; border-color: #5865F2; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+        button { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+        .btn-primary { background: #5865F2; color: #fff; }
+        .btn-primary:hover { background: #4752c4; }
+        .btn-secondary { background: #333; color: #e0e0e0; }
+        .btn-secondary:hover { background: #444; }
+        .btn-danger { background: #ed4245; color: #fff; }
+        .btn-danger:hover { background: #c03537; }
+        .actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
+        .source-item { background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.5rem; }
+        .source-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .source-header span { font-size: 0.85rem; color: #aaa; }
+        .status-bar { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .status-bar .info { font-size: 0.85rem; color: #888; }
+        .status-bar .info strong { color: #e0e0e0; }
+        .toast { position: fixed; bottom: 1rem; right: 1rem; background: #3ba55d; color: #fff; padding: 0.75rem 1.25rem; border-radius: 6px; font-size: 0.85rem; opacity: 0; transition: opacity 0.2s; }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #ed4245; }
+        .categories-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .cat-tag { background: #222; border: 1px solid #333; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+        .cat-tag button { background: none; border: none; color: #888; cursor: pointer; padding: 0; font-size: 1rem; line-height: 1; }
+        .cat-tag button:hover { color: #ed4245; }
+        .add-cat { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .add-cat input { margin-bottom: 0; flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span>📰</span> Clippings</h1>
+
+        <div class="status-bar" id="status-bar">
+            <div class="info" id="status-info">Loading...</div>
+            <button class="btn-secondary" onclick="triggerRun()">Run Now</button>
+        </div>
+
+        <form id="config-form" onsubmit="return saveConfig(event)">
+            <h2>AI Backend</h2>
+            <div class="section">
+                <div class="row">
+                    <div>
+                        <label>Provider</label>
+                        <select id="ai-provider">
+                            <option value="ollama">Ollama</option>
+                            <option value="openai-compatible">OpenAI-compatible</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Model</label>
+                        <input type="text" id="ai-model" placeholder="llama3.1">
+                    </div>
+                </div>
+                <label>Base URL</label>
+                <input type="text" id="ai-base-url" placeholder="http://localhost:11434">
+                <label>API Key (leave empty for local)</label>
+                <input type="password" id="ai-api-key" placeholder="">
+            </div>
+
+            <h2>Sources</h2>
+            <div class="section">
+                <div id="sources-list"></div>
+                <button type="button" class="btn-secondary" onclick="addSource()" style="margin-top:0.5rem">+ Add Source</button>
+            </div>
+
+            <h2>Schedule</h2>
+            <div class="section">
+                <div class="row-3">
+                    <div>
+                        <label>Time</label>
+                        <input type="time" id="schedule-time" value="08:00">
+                    </div>
+                    <div>
+                        <label>Timezone</label>
+                        <input type="text" id="schedule-timezone" value="UTC">
+                    </div>
+                    <div>
+                        <label>Max Articles</label>
+                        <input type="number" id="schedule-max" value="20" min="1" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <h2>Notifications</h2>
+            <div class="section">
+                <div class="row">
+                    <div>
+                        <label>Notifier</label>
+                        <select id="notifier-type" onchange="toggleNotifierFields()">
+                            <option value="discord">Discord</option>
+                            <option value="ntfy">ntfy.sh</option>
+                            <option value="telegram">Telegram</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Discord Ping</label>
+                        <select id="discord-ping">
+                            <option value="everyone">@everyone</option>
+                            <option value="here">@here</option>
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="notifier-discord">
+                    <label>Webhook URL</label>
+                    <input type="text" id="notifier-webhook" placeholder="https://discord.com/api/webhooks/...">
+                </div>
+                <div id="notifier-ntfy" style="display:none">
+                    <label>ntfy Topic</label>
+                    <input type="text" id="ntfy-topic" placeholder="my-clippings">
+                </div>
+                <div id="notifier-telegram" style="display:none">
+                    <label>Bot Token</label>
+                    <input type="text" id="telegram-token" placeholder="123456:ABC-...">
+                    <label>Chat ID</label>
+                    <input type="text" id="telegram-chat-id" placeholder="123456789">
+                </div>
+            </div>
+
+            <h2>Categories</h2>
+            <div class="section">
+                <div class="categories-list" id="categories-list"></div>
+                <div class="add-cat">
+                    <input type="text" id="new-category" placeholder="New category name">
+                    <button type="button" class="btn-secondary" onclick="addCategory()">Add</button>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn-primary">Save Config</button>
+            </div>
+        </form>
+
+        <h2>Preferences</h2>
+        <div class="section" id="preferences-section">
+            <p style="color:#888;font-size:0.85rem">Like/dislike articles in your digest to train preferences here.</p>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let config = {};
+        let categories = [];
+        let sources = [];
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                config = await res.json();
+
+                document.getElementById('ai-provider').value = config.ai.provider;
+                document.getElementById('ai-base-url').value = config.ai.base_url;
+                document.getElementById('ai-model').value = config.ai.model;
+                document.getElementById('ai-api-key').value = config.ai.api_key || '';
+
+                document.getElementById('schedule-time').value = config.schedule.time;
+                document.getElementById('schedule-timezone').value = config.schedule.timezone;
+                document.getElementById('schedule-max').value = config.schedule.max_articles;
+
+                document.getElementById('notifier-type').value = config.notifier.type;
+                document.getElementById('discord-ping').value = config.notifier.discord_ping || '';
+                document.getElementById('notifier-webhook').value = config.notifier.webhook_url || '';
+                document.getElementById('ntfy-topic').value = config.notifier.ntfy_topic || '';
+                document.getElementById('telegram-token').value = config.notifier.telegram_bot_token || '';
+                document.getElementById('telegram-chat-id').value = config.notifier.telegram_chat_id || '';
+
+                categories = config.categories || [];
+                sources = config.sources || [];
+
+                renderCategories();
+                renderSources();
+                toggleNotifierFields();
+            } catch (e) {
+                showToast('Failed to load config: ' + e.message, true);
+            }
+        }
+
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const status = await res.json();
+                document.getElementById('status-info').innerHTML =
+                    `Next: <strong>${status.next_run}</strong> · Sources: <strong>${status.sources}</strong> · Notifier: <strong>${status.notifier}</strong> · AI: <strong>${status.ai_provider}/${status.ai_model}</strong>`;
+            } catch (e) {}
+        }
+
+        async function loadPreferences() {
+            try {
+                const res = await fetch('/api/preferences');
+                const prefs = await res.json();
+                const el = document.getElementById('preferences-section');
+                const feedback = prefs.article_feedback || [];
+                let html = '';
+                if (prefs.liked_categories?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#3ba55d">Liked:</strong> ${prefs.liked_categories.join(', ')}</div>`;
+                if (prefs.disliked_categories?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#ed4245">Disliked:</strong> ${prefs.disliked_categories.join(', ')}</div>`;
+                if (prefs.liked_sources?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#3ba55d">Liked sources:</strong> ${prefs.liked_sources.join(', ')}</div>`;
+                if (prefs.disliked_sources?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#ed4245">Disliked sources:</strong> ${prefs.disliked_sources.join(', ')}</div>`;
+                if (feedback.length) html += `<div style="color:#666;font-size:0.8rem;margin-top:0.5rem">${feedback.length} feedback entries recorded</div>`;
+                if (!html) html = '<p style="color:#888;font-size:0.85rem">No preferences learned yet. Like/dislike articles in your digest to train the system.</p>';
+                el.innerHTML = html;
+            } catch (e) {}
+        }
+
+        async function saveConfig(e) {
+            e.preventDefault();
+            const data = {
+                ai: {
+                    provider: document.getElementById('ai-provider').value,
+                    base_url: document.getElementById('ai-base-url').value,
+                    model: document.getElementById('ai-model').value,
+                    api_key: document.getElementById('ai-api-key').value,
+                },
+                sources: sources,
+                schedule: {
+                    time: document.getElementById('schedule-time').value,
+                    timezone: document.getElementById('schedule-timezone').value,
+                    max_articles: parseInt(document.getElementById('schedule-max').value),
+                },
+                notifier: {
+                    type: document.getElementById('notifier-type').value,
+                    webhook_url: document.getElementById('notifier-webhook').value || null,
+                    discord_ping: document.getElementById('discord-ping').value,
+                    ntfy_url: 'https://ntfy.sh',
+                    ntfy_topic: document.getElementById('ntfy-topic').value || null,
+                    telegram_bot_token: document.getElementById('telegram-token').value || null,
+                    telegram_chat_id: document.getElementById('telegram-chat-id').value || null,
+                },
+                categories: categories,
+                preferences: {
+                    liked_categories: config.preferences?.liked_categories || [],
+                    disliked_categories: config.preferences?.disliked_categories || [],
+                    liked_sources: config.preferences?.liked_sources || [],
+                    disliked_sources: config.preferences?.disliked_sources || [],
+                },
+            };
+
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                showToast('Config saved');
+                loadStatus();
+            } catch (e) {
+                showToast('Save failed: ' + e.message, true);
+            }
+            return false;
+        }
+
+        async function triggerRun() {
+            try {
+                showToast('Running digest...');
+                const res = await fetch('/api/run', {method: 'POST'});
+                if (!res.ok) throw new Error(await res.text());
+                showToast('Digest complete');
+                loadStatus();
+            } catch (e) {
+                showToast('Run failed: ' + e.message, true);
+            }
+        }
+
+        function toggleNotifierFields() {
+            const type = document.getElementById('notifier-type').value;
+            document.getElementById('notifier-discord').style.display = type === 'discord' ? '' : 'none';
+            document.getElementById('notifier-ntfy').style.display = type === 'ntfy' ? '' : 'none';
+            document.getElementById('notifier-telegram').style.display = type === 'telegram' ? '' : 'none';
+        }
+
+        function renderCategories() {
+            const el = document.getElementById('categories-list');
+            el.innerHTML = categories.map((c, i) =>
+                `<span class="cat-tag">${c} <button onclick="removeCategory(${i})">&times;</button></span>`
+            ).join('');
+        }
+
+        function addCategory() {
+            const input = document.getElementById('new-category');
+            const val = input.value.trim();
+            if (val && !categories.includes(val)) {
+                categories.push(val);
+                renderCategories();
+            }
+            input.value = '';
+        }
+
+        function removeCategory(i) {
+            categories.splice(i, 1);
+            renderCategories();
+        }
+
+        function renderSources() {
+            const el = document.getElementById('sources-list');
+            el.innerHTML = sources.map((s, i) => `
+                <div class="source-item">
+                    <div class="source-header">
+                        <span>${s.name} (${s.type})</span>
+                        <button type="button" class="btn-danger" style="padding:0.2rem 0.5rem;font-size:0.75rem" onclick="removeSource(${i})">Remove</button>
+                    </div>
+                    <div class="row">
+                        <div>
+                            <label>Type</label>
+                            <select onchange="sources[${i}].type=this.value;renderSources()">
+                                <option value="rss" ${s.type==='rss'?'selected':''}>RSS</option>
+                                <option value="hackernews" ${s.type==='hackernews'?'selected':''}>Hacker News</option>
+                                <option value="bbc" ${s.type==='bbc'?'selected':''}>BBC</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Max Articles</label>
+                            <input type="number" value="${s.max_articles}" min="1" max="50" onchange="sources[${i}].max_articles=parseInt(this.value)">
+                        </div>
+                    </div>
+                    <label>Name</label>
+                    <input type="text" value="${s.name}" onchange="sources[${i}].name=this.value">
+                    ${s.type === 'rss' ? `<label>URL</label><input type="text" value="${s.url || ''}" onchange="sources[${i}].url=this.value">` : ''}
+                </div>
+            `).join('');
+        }
+
+        function addSource() {
+            sources.push({type: 'rss', name: 'New Source', url: '', max_articles: 10});
+            renderSources();
+        }
+
+        function removeSource(i) {
+            sources.splice(i, 1);
+            renderSources();
+        }
+
+        function showToast(msg, isError) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => el.className = 'toast', 3000);
+        }
+
+        loadConfig();
+        loadStatus();
+        loadPreferences();
+    </script>
+</body>
+</html>

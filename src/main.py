@@ -1,4 +1,5 @@
 import asyncio
+import threading
 
 import click
 
@@ -173,18 +174,29 @@ def preferences():
 
 
 @cli.command()
-def serve():
-    """Start the scheduler and optional web UI."""
+@click.option("--host", default="0.0.0.0", help="Web UI host")
+@click.option("--port", default=8000, type=int, help="Web UI port")
+def serve(host, port):
+    """Start the scheduler and web UI."""
     config = Config.load()
-    click.echo("Starting Clippings scheduler...")
+    click.echo("Starting Clippings...")
     click.echo(f"  Sources: {len(config.sources)}")
     click.echo(f"  Notifier: {config.notifier.type}")
     click.echo(f"  AI: {config.ai.provider}/{config.ai.model}")
     click.echo(f"  Schedule: {config.schedule.time} {config.schedule.timezone}")
+    click.echo(f"  Web UI: http://{host}:{port}")
     click.echo("")
 
-    scheduler = DigestScheduler(config)
-    scheduler.start()
+    def start_scheduler():
+        scheduler = DigestScheduler(config)
+        scheduler.start()
+
+    t = threading.Thread(target=start_scheduler, daemon=True)
+    t.start()
+
+    import uvicorn
+
+    uvicorn.run("src.web.app:app", host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
