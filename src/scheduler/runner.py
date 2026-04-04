@@ -186,9 +186,12 @@ class DigestRunner:
 
     async def _fetch_all(self) -> list[Article]:
         """Fetch articles from all configured sources."""
+        import traceback
+
         all_articles = []
         for source in self.config.sources:
             try:
+                print(f"  Fetching from {source.name} ({source.type})...")
                 if source.type == "hackernews":
                     fetcher = get_fetcher(source.type)
                 elif source.type == "bbc":
@@ -197,9 +200,11 @@ class DigestRunner:
                     fetcher = get_fetcher(source.type, name=source.name, url=source.url)
 
                 articles = await fetcher.fetch(source.max_articles)
+                print(f"  Got {len(articles)} from {source.name}")
                 all_articles.extend(articles)
-            except Exception as e:
-                print(f"Error fetching from {source.name}: {e}")
+            except Exception:
+                print(f"  Error fetching from {source.name}:")
+                traceback.print_exc()
 
         return all_articles
 

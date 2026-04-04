@@ -146,6 +146,14 @@ async def run_status():
     return _run_status
 
 
+@app.get("/api/config-raw")
+async def config_raw():
+    path = Path(CONFIG_PATH)
+    if path.exists():
+        return {"content": path.read_text()}
+    return {"content": "File does not exist"}
+
+
 @app.get("/api/status")
 async def get_status():
     config = Config.load(CONFIG_PATH)
