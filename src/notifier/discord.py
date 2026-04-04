@@ -22,10 +22,8 @@ def get_bot():
 
 def _run_coro(coro):
     """Run a coroutine on the bot's event loop from another thread."""
-    if _bot_loop is None:
-        raise RuntimeError("Discord bot event loop not available")
     future = asyncio.run_coroutine_threadsafe(coro, _bot_loop)
-    return future.result(timeout=60)
+    return future.result(timeout=120)
 
 
 def start_discord_bot(token: str) -> None:
@@ -89,25 +87,25 @@ class DiscordNotifier(BaseNotifier):
         if _bot is None:
             start_discord_bot(self.bot_token)
 
-        def _do_send():
+        async def _do_send():
             global _sent_messages
 
             channel = _bot.get_channel(self.channel_id)
             if not channel:
-                channel = _bot.loop.run_until_complete(
-                    _bot.fetch_channel(self.channel_id)
-                )
+                channel = await _bot.fetch_channel(self.channel_id)
 
-            ping_msg = None
             if self.ping == "everyone":
-                ping_msg = "@everyone **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                await channel.send(
+                    "@everyone **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                )
             elif self.ping == "here":
-                ping_msg = "@here **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                await channel.send(
+                    "@here **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                )
             elif self.ping:
-                ping_msg = f"{self.ping} **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
-
-            if ping_msg:
-                channel.loop.run_until_complete(channel.send(ping_msg))
+                await channel.send(
+                    f"{self.ping} **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                )
 
             for category, sources in groups.items():
                 for source_name, articles in sources.items():
@@ -118,13 +116,9 @@ class DiscordNotifier(BaseNotifier):
                         lines.append(f"[{article.title}]({article.url})")
                         content = "\n".join(lines)
 
-                        msg = channel.loop.run_until_complete(channel.send(content))
-                        channel.loop.run_until_complete(
-                            msg.add_reaction("\U0001f44d")
-                        )
-                        channel.loop.run_until_complete(
-                            msg.add_reaction("\U0001f44e")
-                        )
+                        msg = await channel.send(content)
+                        await msg.add_reaction("\U0001f44d")
+                        await msg.add_reaction("\U0001f44e")
 
                         _sent_messages.append({
                             "message_id": msg.id,
@@ -133,5 +127,5 @@ class DiscordNotifier(BaseNotifier):
                             "article_id": article.id,
                         })
 
-        _do_send()
+        _run_coro(_do_send())
         return "discord"
