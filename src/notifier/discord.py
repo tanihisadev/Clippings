@@ -90,28 +90,36 @@ class DiscordNotifier(BaseNotifier):
         async def _do_send():
             global _sent_messages
 
-            print(f"  Discord: sending to channel_id={self.channel_id} (type={type(self.channel_id)})")
-            channel = _bot.get_channel(self.channel_id)
+            cid = self.channel_id
+            print(f"  Discord: sending to channel_id={cid} (type={type(cid).__name__})")
+            channel = _bot.get_channel(cid)
             print(f"  Discord: get_channel returned {channel}")
             if not channel:
-                print(f"  Discord: fetching channel...")
-                channel = await _bot.fetch_channel(self.channel_id)
+                print("  Discord: fetching channel...")
+                channel = await _bot.fetch_channel(cid)
                 print(f"  Discord: fetch_channel returned {channel}")
 
+            ping_msg = None
             if self.ping == "everyone":
-                await channel.send(
-                    "@everyone **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                ping_msg = (
+                    "@everyone **Clippings** \u2014 "
+                    "react \U0001f44d/\U0001f44e to train preferences"
                 )
             elif self.ping == "here":
-                await channel.send(
-                    "@here **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                ping_msg = (
+                    "@here **Clippings** \u2014 react \U0001f44d/\U0001f44e to train preferences"
                 )
             elif self.ping:
-                await channel.send(
-                    f"{self.ping} **Clippings** \u2014 react \U0001f44d/\U0001f44e on each article to train preferences"
+                ping_msg = (
+                    f"{self.ping} **Clippings** \u2014 "
+                    "react \U0001f44d/\U0001f44e to train preferences"
                 )
+            if ping_msg:
+                await channel.send(ping_msg)
 
             for category, sources in groups.items():
+                await channel.send(f"\n**── {category} ──**")
+
                 for source_name, articles in sources.items():
                     for article in articles:
                         summary = article.summary or ""
@@ -127,12 +135,14 @@ class DiscordNotifier(BaseNotifier):
                         await msg.add_reaction("\U0001f44d")
                         await msg.add_reaction("\U0001f44e")
 
-                        _sent_messages.append({
-                            "message_id": msg.id,
-                            "category": category,
-                            "source": source_name,
-                            "article_id": article.id,
-                        })
+                        _sent_messages.append(
+                            {
+                                "message_id": msg.id,
+                                "category": category,
+                                "source": source_name,
+                                "article_id": article.id,
+                            }
+                        )
 
         _run_coro(_do_send())
         return "discord"
