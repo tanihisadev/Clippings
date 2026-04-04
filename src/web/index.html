@@ -380,7 +380,10 @@
                         .filter(l => l)
                         .map(l => `<div>${l}</div>`)
                         .join('');
-                    el.scrollTop = el.scrollHeight;
+                    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+                    if (isNearBottom) {
+                        el.scrollTop = el.scrollHeight;
+                    }
                 }
             } catch (e) {}
         }

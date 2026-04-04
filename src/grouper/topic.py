@@ -1,8 +1,16 @@
 import json
+import os
 
 import litellm
 
 from src.fetcher.models import Article
+
+PROVIDER_MODEL_PREFIX = {
+    "ollama": "ollama",
+    "openai": "openai",
+    "anthropic": "anthropic",
+    "openai-compatible": "openai",
+}
 
 
 class ArticleGrouper:
@@ -14,10 +22,12 @@ class ArticleGrouper:
         base_url: str = "http://localhost:11434",
         api_key: str = "",
         categories: list[str] | None = None,
+        provider: str = "ollama",
     ):
         self.model = model
         self.base_url = base_url
         self.api_key = api_key
+        self.provider = provider
         self.categories = categories or [
             "Technology",
             "Science",
@@ -30,11 +40,25 @@ class ArticleGrouper:
         ]
         self._configure_litellm()
 
+    def _model_name(self) -> str:
+        prefix = PROVIDER_MODEL_PREFIX.get(self.provider, "openai")
+        return f"{prefix}/{self.model}"
+
     def _configure_litellm(self) -> None:
-        if self.api_key:
-            litellm.api_key = self.api_key
-        else:
-            litellm.api_key = "not-needed"
+        if self.provider == "ollama":
+            if self.base_url:
+                os.environ["OLLAMA_API_BASE"] = self.base_url
+            os.environ["OLLAMA_API_KEY"] = "not-needed"
+        elif self.provider == "anthropic":
+            if self.api_key:
+                os.environ["ANTHROPIC_API_KEY"] = self.api_key
+        elif self.provider in ("openai", "openai-compatible"):
+            if self.base_url:
+                os.environ["OPENAI_API_BASE"] = self.base_url
+            if self.api_key:
+                os.environ["OPENAI_API_KEY"] = self.api_key
+            else:
+                os.environ["OPENAI_API_KEY"] = "not-needed"
 
     async def group(self, articles: list[Article]) -> dict[str, list[Article]]:
         """Assign each article to one of the fixed categories."""
@@ -64,14 +88,13 @@ class ArticleGrouper:
 Return only JSON mapping article IDs to category names."""
 
         response = await litellm.acompletion(
-            model=f"openai/{self.model}",
+            model=self._model_name(),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
             max_tokens=500,
             temperature=0.1,
-            api_base=self.base_url if self.base_url else None,
         )
 
         content = response.choices[0].message.content.strip()

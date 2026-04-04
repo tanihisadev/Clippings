@@ -58,6 +58,7 @@ class DigestRunner:
             model=self.config.ai.model,
             base_url=self.config.ai.base_url,
             api_key=self.config.ai.api_key,
+            provider=self.config.ai.provider,
         )
         articles = await summarizer.summarize_batch(articles)
         print("Summarization complete")
@@ -66,6 +67,7 @@ class DigestRunner:
             model=self.config.ai.model,
             base_url=self.config.ai.base_url,
             api_key=self.config.ai.api_key,
+            provider=self.config.ai.provider,
             categories=self.config.categories,
         )
         groups_raw = await grouper.group(articles)
