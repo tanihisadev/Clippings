@@ -90,9 +90,13 @@ class DiscordNotifier(BaseNotifier):
         async def _do_send():
             global _sent_messages
 
+            print(f"  Discord: sending to channel_id={self.channel_id} (type={type(self.channel_id)})")
             channel = _bot.get_channel(self.channel_id)
+            print(f"  Discord: get_channel returned {channel}")
             if not channel:
+                print(f"  Discord: fetching channel...")
                 channel = await _bot.fetch_channel(self.channel_id)
+                print(f"  Discord: fetch_channel returned {channel}")
 
             if self.ping == "everyone":
                 await channel.send(

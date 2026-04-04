@@ -123,7 +123,7 @@
                     <label>Bot Token (from <a href="https://discord.com/developers/applications" target="_blank" style="color:#5865F2">Discord Developer Portal</a>)</label>
                     <input type="text" id="discord-bot-token" placeholder="MTIz...">
                     <label>Channel ID (enable Discord dev mode, right-click channel → Copy ID)</label>
-                    <input type="number" id="discord-channel-id" placeholder="1234567890">
+                    <input type="text" id="discord-channel-id" placeholder="123456789012345678">
                 </div>
                 <div id="notifier-ntfy" style="display:none">
                     <label>ntfy Topic</label>
@@ -246,7 +246,7 @@
                 notifier: {
                     type: document.getElementById('notifier-type').value,
                     discord_bot_token: document.getElementById('discord-bot-token').value || null,
-                    discord_channel_id: parseInt(document.getElementById('discord-channel-id').value) || null,
+                    discord_channel_id: document.getElementById('discord-channel-id').value || null,
                     discord_ping: document.getElementById('discord-ping').value,
                     ntfy_url: 'https://ntfy.sh',
                     ntfy_topic: document.getElementById('ntfy-topic').value || null,
