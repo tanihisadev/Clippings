@@ -157,8 +157,8 @@
         </div>
 
         <h2>Activity Log</h2>
-        <div class="section" id="activity-log" style="max-height:300px;overflow-y:auto;font-family:monospace;font-size:0.8rem;line-height:1.6;color:#aaa">
-            <p style="color:#666">No recent activity.</p>
+        <div class="section" style="padding:0">
+            <pre id="activity-log" style="max-height:300px;overflow:auto;padding:1rem;font-family:monospace;font-size:0.8rem;line-height:1.6;color:#aaa;white-space:pre-wrap;word-break:break-word;user-select:text;cursor:text;margin:0">No recent activity.</pre>
         </div>
     </div>
 
@@ -380,10 +380,7 @@
                 }
 
                 if (status.log && status.log.length > 0) {
-                    el.innerHTML = status.log
-                        .filter(l => l)
-                        .map(l => `<div>${l}</div>`)
-                        .join('');
+                    el.textContent = status.log.filter(l => l).join('\n');
                     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
                     if (isNearBottom) {
                         el.scrollTop = el.scrollHeight;

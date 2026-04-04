@@ -118,7 +118,7 @@ class DiscordNotifier(BaseNotifier):
                 await channel.send(ping_msg)
 
             for category, sources in groups.items():
-                await channel.send(f"\n# {category}")
+                await channel.send(f"\n# ---{category}---")
 
                 for source_name, articles in sources.items():
                     for article in articles:
