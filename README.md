@@ -1,6 +1,3 @@
-PERSONAL PROOF OF CONCEPT PROJECT - WILL REFACTOR LATER.
-
-
 # Clippings
 
 A self-hosted, AI-powered daily news digest that aggregates articles from configurable sources, summarizes them, groups by topic, and delivers them to your preferred notification channel. Over time, it learns your preferences through like/dislike feedback.
@@ -22,12 +19,12 @@ A self-hosted, AI-powered daily news digest that aggregates articles from config
 **Docker (recommended):**
 
 ```bash
-git clone https://github.com/yourusername/clippings.git
+git clone https://github.com/tanihisadev/clippings.git
 cd clippings
 docker compose up -d
 ```
 
-Open `http://localhost:8000` in your browser to configure everything.
+Open `http://localhost:3000` in your browser to configure everything.
 
 **Native (pip):**
 
@@ -37,7 +34,7 @@ Requires Python 3.11+, pip, and build tools for compiling dependencies:
 # Debian/Ubuntu
 apt install python3 python3-pip python3-venv gcc libxml2-dev libxslt-dev
 
-git clone https://github.com/yourusername/clippings.git
+git clone https://github.com/tanihisadev/clippings.git
 cd clippings
 python3 -m venv .venv
 source .venv/bin/activate
@@ -61,54 +58,52 @@ See [Configuration](#configuration) below for all options. The quickest way is t
 ```bash
 # Docker
 docker compose up -d
-# Web UI: http://localhost:8000
+# Web UI: http://localhost:3000
 
 # Native
 digest run        # run once
 digest serve      # start scheduler + web UI on :8000
 ```
 
-The web UI at `http://localhost:8000` lets you manage config, sources, categories, and trigger digests from your browser — no SSH needed.
+The web UI lets you manage config, sources, categories, and trigger digests from your browser — no SSH needed.
 
 ## Configuration
 
-### config.yaml
+See the detailed guides for each section:
+
+- **[AI Backend](docs/ai-backend.md)** — Ollama, llama.cpp, OpenAI, Anthropic
+- **[Sources](docs/sources.md)** — RSS feeds, Hacker News, BBC News
+- **[Notifications](docs/notifications.md)** — Discord bot, ntfy.sh, Telegram
+
+### config.yaml (quick reference)
 
 ```yaml
 ai:
-  provider: ollama                    # ollama, openai, anthropic, openai-compatible
-  base_url: http://localhost:11434    # Your AI backend URL
-  model: llama3.1                     # Model name
-  api_key: ""                         # API key (not needed for local backends)
+  provider: ollama
+  base_url: http://localhost:11434
+  model: llama3.1
+  api_key: ""
 
 sources:
+  - type: hackernews
+    name: Hacker News
+    max_articles: 10
   - type: rss
     name: BBC News
     url: http://feeds.bbci.co.uk/news/rss.xml
     max_articles: 10
-  - type: hackernews
-    max_articles: 15
 
 schedule:
-  time: "08:00"                       # 24h format
-  timezone: UTC                       # Any valid timezone
-  max_articles: 20                    # Max articles in the final digest
+  time: "08:00"
+  timezone: UTC
+  max_articles: 20
 
 notifier:
-  type: discord                       # discord, ntfy, telegram
-  webhook_url: "https://discord.com/api/webhooks/..."
-  discord_ping: "everyone"            # "everyone", "here", "<@USER_ID>", or ""
+  type: discord
+  discord_bot_token: ""
+  discord_channel_id: 0
+  discord_ping: "everyone"
 
-  # ntfy settings (if type: ntfy)
-  ntfy_url: "https://ntfy.sh"
-  ntfy_topic: ""
-
-  # telegram settings (if type: telegram)
-  telegram_bot_token: ""
-  telegram_chat_id: ""
-
-# Fixed categories the AI sorts articles into.
-# You can add, remove, or rename these.
 categories:
   - Technology
   - Science
@@ -120,105 +115,16 @@ categories:
   - Other
 
 preferences:
-  # Auto-populated over time via like/dislike feedback
   liked_categories: []
   disliked_categories: []
   liked_sources: []
   disliked_sources: []
 ```
 
-## AI Backend Setup
-
-### Ollama
-
-1. Install [Ollama](https://ollama.com)
-2. Pull a model: `ollama pull llama3.1`
-3. Configure:
-   ```yaml
-   ai:
-     provider: ollama
-     base_url: http://localhost:11434
-     model: llama3.1
-   ```
-
-### llama.cpp (Server Mode)
-
-1. Run llama.cpp server:
-   ```bash
-   ./llama-server -m your-model.gguf --port 8080
-   ```
-2. Configure:
-   ```yaml
-   ai:
-     provider: openai-compatible
-     base_url: http://localhost:8080/v1
-     model: default
-   ```
-
-### Cloud Providers
-
-```yaml
-ai:
-  provider: openai
-  model: gpt-4o
-  api_key: "sk-..."
-```
-
-## Notification Setup
-
-### Discord
-
-1. Channel settings → Integrations → Webhooks → Create webhook
-2. Copy the URL into your config:
-   ```yaml
-   notifier:
-     type: discord
-     webhook_url: "https://discord.com/api/webhooks/..."
-     discord_ping: "everyone"
-   ```
-
-### ntfy.sh
-
-1. Pick a topic name
-2. Configure:
-   ```yaml
-   notifier:
-     type: ntfy
-     ntfy_topic: "my-clippings"
-   ```
-
-### Telegram
-
-1. Create a bot via [@BotFather](https://t.me/BotFather)
-2. Get your chat ID via [@userinfobot](https://t.me/userinfobot)
-3. Configure:
-   ```yaml
-   notifier:
-     type: telegram
-     telegram_bot_token: "123456:ABC-..."
-     telegram_chat_id: "123456789"
-   ```
-
-## Adding Sources
-
-Add any RSS feed to the `sources` list:
-
-```yaml
-sources:
-  - type: rss
-    name: Ars Technica
-    url: https://arstechnica.com/feed/
-    max_articles: 10
-  - type: hackernews
-    max_articles: 15
-```
-
-Available source types: `rss`, `hackernews`, `bbc`.
-
 ## How Preference Learning Works
 
-1. Each digest includes like/dislike options (emoji reactions on Discord, action buttons on ntfy, inline keyboard on Telegram)
-2. Feedback is saved to `data/preferences.json`
+1. Each article is sent as its own message with 👍/👎 reactions
+2. Reacting on an article records feedback for that specific category + source
 3. After 2+ likes or dislikes from the same source or category, it's added to your preferences
 4. Future digests score articles against your preferences — liked sources/categories are boosted, disliked ones are demoted
 5. View with `digest preferences`
