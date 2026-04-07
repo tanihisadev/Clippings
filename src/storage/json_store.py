@@ -19,6 +19,7 @@ STOPWORDS = frozenset(
     "get go see now long just know take come make like want "
     "use new give day way well down his her its our his they "
     "she him say says said one two three four five six seven eight nine ten"
+    .split()
 )
 
 
