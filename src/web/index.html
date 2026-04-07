@@ -217,13 +217,42 @@
                 const prefs = await res.json();
                 const el = document.getElementById('preferences-section');
                 const feedback = prefs.article_feedback || [];
+                const liked = prefs.liked_keywords || [];
+                const disliked = prefs.disliked_keywords || [];
+                const likedFull = prefs.liked_keywords_full || {};
+                const dislikedFull = prefs.disliked_keywords_full || {};
+                const feedbackCount = prefs.feedback_count || 0;
+
                 let html = '';
-                if (prefs.liked_categories?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#3ba55d">Liked:</strong> ${prefs.liked_categories.join(', ')}</div>`;
-                if (prefs.disliked_categories?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#ed4245">Disliked:</strong> ${prefs.disliked_categories.join(', ')}</div>`;
-                if (prefs.liked_sources?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#3ba55d">Liked sources:</strong> ${prefs.liked_sources.join(', ')}</div>`;
-                if (prefs.disliked_sources?.length) html += `<div style="margin-bottom:0.5rem"><strong style="color:#ed4245">Disliked sources:</strong> ${prefs.disliked_sources.join(', ')}</div>`;
-                if (feedback.length) html += `<div style="color:#666;font-size:0.8rem;margin-top:0.5rem">${feedback.length} feedback entries recorded</div>`;
-                if (!html) html = '<p style="color:#888;font-size:0.85rem">No preferences learned yet. Like/dislike articles in your digest to train the system.</p>';
+
+                if (liked.length) {
+                    html += `<div style="margin-bottom:0.75rem">`;
+                    html += `<strong style="color:#3ba55d">Liked keywords:</strong> `;
+                    html += liked.map(kw => {
+                        const count = likedFull[kw] || 0;
+                        return `<span class="cat-tag" style="border-color:#3ba55d">${kw} (${count})</span>`;
+                    }).join(' ');
+                    html += `</div>`;
+                }
+
+                if (disliked.length) {
+                    html += `<div style="margin-bottom:0.75rem">`;
+                    html += `<strong style="color:#ed4245">Disliked keywords:</strong> `;
+                    html += disliked.map(kw => {
+                        const count = dislikedFull[kw] || 0;
+                        return `<span class="cat-tag" style="border-color:#ed4245">${kw} (${count})</span>`;
+                    }).join(' ');
+                    html += `</div>`;
+                }
+
+                if (feedbackCount) {
+                    html += `<div style="color:#666;font-size:0.8rem;margin-top:0.5rem">${feedbackCount} feedback entries recorded</div>`;
+                }
+
+                if (!html) {
+                    html = '<p style="color:#888;font-size:0.85rem">No preferences learned yet. Like/dislike articles in your digest to train the system.</p>';
+                }
+
                 el.innerHTML = html;
             } catch (e) {}
         }

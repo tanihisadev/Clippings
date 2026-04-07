@@ -184,14 +184,33 @@ async def get_preferences():
     prefs = store.load(
         "preferences",
         {
-            "liked_categories": [],
-            "disliked_categories": [],
-            "liked_sources": [],
-            "disliked_sources": [],
+            "liked_keywords": {},
+            "disliked_keywords": {},
             "article_feedback": [],
         },
     )
-    return prefs
+
+    feedback = prefs.get("article_feedback", [])
+
+    return {
+        "liked_keywords": store.get_top_keywords("liked_keywords", 20),
+        "disliked_keywords": store.get_top_keywords("disliked_keywords", 20),
+        "feedback_count": len(feedback),
+        "liked_keywords_full": dict(
+            sorted(
+                prefs.get("liked_keywords", {}).items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:30]
+        ),
+        "disliked_keywords_full": dict(
+            sorted(
+                prefs.get("disliked_keywords", {}).items(),
+                key=lambda x: x[1],
+                reverse=True,
+            )[:30]
+        ),
+    }
 
 
 @app.post("/api/preferences")

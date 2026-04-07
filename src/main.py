@@ -141,28 +141,15 @@ def status():
 def preferences():
     """View learned preferences."""
     store = JSONStore()
-    prefs = store.load(
-        "preferences",
-        {
-            "liked_categories": [],
-            "disliked_categories": [],
-            "liked_sources": [],
-            "disliked_sources": [],
-            "article_feedback": [],
-        },
-    )
+
+    liked = store.get_top_keywords("liked_keywords", 15)
+    disliked = store.get_top_keywords("disliked_keywords", 15)
+
+    feedback = store.load("preferences", {"article_feedback": []}).get("article_feedback", [])
 
     click.echo("=== Learned Preferences ===\n")
-    liked_cats = prefs.get("liked_categories", []) or ["none"]
-    disliked_cats = prefs.get("disliked_categories", []) or ["none"]
-    liked_srcs = prefs.get("liked_sources", []) or ["none"]
-    disliked_srcs = prefs.get("disliked_sources", []) or ["none"]
-    click.echo(f"Liked categories: {', '.join(liked_cats)}")
-    click.echo(f"Disliked categories: {', '.join(disliked_cats)}")
-    click.echo(f"Liked sources: {', '.join(liked_srcs)}")
-    click.echo(f"Disliked sources: {', '.join(disliked_srcs)}")
-
-    feedback = prefs.get("article_feedback", [])
+    click.echo(f"Liked keywords: {', '.join(liked) or 'none'}")
+    click.echo(f"Disliked keywords: {', '.join(disliked) or 'none'}")
     click.echo(f"\nTotal feedback entries: {len(feedback)}")
 
     if feedback:

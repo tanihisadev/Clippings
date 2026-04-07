@@ -141,6 +141,7 @@ class DiscordNotifier(BaseNotifier):
                                 "category": category,
                                 "source": source_name,
                                 "article_id": article.id,
+                                "article_text": f"{article.title} {article.summary}",
                             }
                         )
 
