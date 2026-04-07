@@ -60,6 +60,7 @@ def start_discord_bot(token: str) -> None:
                     action=action,
                     source=msg_info["source"],
                     category=msg_info["category"],
+                    article_text=msg_info.get("article_text", ""),
                 )
                 print(f"  Feedback: {action} -> {msg_info['category']}/{msg_info['source']}")
                 break
