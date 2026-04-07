@@ -151,3 +151,14 @@ class JSONStore:
         pool = prefs.get(pool_key, {})
         sorted_kw = sorted(pool.items(), key=lambda x: x[1], reverse=True)
         return [kw for kw, _ in sorted_kw[:limit]]
+
+    def reset_preferences(self) -> None:
+        """Reset all learned keyword preferences."""
+        self.save(
+            "preferences",
+            {
+                "liked_keywords": {},
+                "disliked_keywords": {},
+                "article_feedback": [],
+            },
+        )

@@ -253,8 +253,24 @@
                     html = '<p style="color:#888;font-size:0.85rem">No preferences learned yet. Like/dislike articles in your digest to train the system.</p>';
                 }
 
+                html += `<div style="margin-top:1rem"><button class="btn-danger" onclick="resetPreferences()">Reset Preferences</button></div>`;
+
                 el.innerHTML = html;
             } catch (e) {}
+        }
+
+        async function resetPreferences() {
+            if (!confirm('Reset all learned preferences? This will clear all liked/disliked keywords and feedback history.')) {
+                return;
+            }
+            try {
+                const res = await fetch('/api/preferences/reset', {method: 'DELETE'});
+                if (!res.ok) throw new Error(await res.text());
+                showToast('Preferences reset');
+                loadPreferences();
+            } catch (e) {
+                showToast('Reset failed: ' + e.message, true);
+            }
         }
 
         async function saveConfig(e) {

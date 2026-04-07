@@ -218,3 +218,10 @@ async def update_preferences(data: dict):
     store = JSONStore()
     store.save("preferences", data)
     return {"status": "ok"}
+
+
+@app.delete("/api/preferences/reset")
+async def reset_preferences():
+    store = JSONStore()
+    store.reset_preferences()
+    return {"status": "ok"}
