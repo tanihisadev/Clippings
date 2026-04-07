@@ -251,22 +251,9 @@ class DigestRunner:
         return article
 
     def _score_articles(self, articles: list[Article]) -> list[Article]:
-        """Score articles based on user preferences."""
+        """Score articles based on keyword preferences."""
         for article in articles:
-            score = 0
-            score += self.store.get_feedback_score(article.source, article.topic)
-
-            if article.source in self.config.preferences.liked_sources:
-                score += 3
-            if article.source in self.config.preferences.disliked_sources:
-                score -= 3
-
-            if article.topic in self.config.preferences.liked_categories:
-                score += 3
-            if article.topic in self.config.preferences.disliked_categories:
-                score -= 3
-
-            article.score = score
+            article.score = self.store.score_article(article.title, article.summary, article.source)
         return articles
 
     def _create_notifier(self):
