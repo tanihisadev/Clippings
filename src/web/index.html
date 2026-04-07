@@ -168,6 +168,10 @@
         let config = {};
         let categories = [];
         let sources = [];
+        let lastLogLength = 0;
+        let isAtBottom = true;
+        let hasUserScrolled = false;
+        let pollingInterval = null;
 
         async function loadConfig() {
             try {
@@ -425,10 +429,21 @@
                 }
 
                 if (status.log && status.log.length > 0) {
-                    el.textContent = status.log.filter(l => l).join('\n');
-                    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-                    if (isNearBottom) {
-                        el.scrollTop = el.scrollHeight;
+                    const newLog = status.log.filter(l => l).join('\n');
+                    const newLength = newLog.length;
+
+                    if (newLength > lastLogLength) {
+                        if (lastLogLength === 0) {
+                            el.textContent = newLog;
+                        } else {
+                            const appendText = newLog.substring(lastLogLength);
+                            el.textContent = newLog;
+                        }
+                        lastLogLength = newLength;
+
+                        if (isAtBottom && !hasUserScrolled) {
+                            el.scrollTop = el.scrollHeight;
+                        }
                     }
                 }
             } catch (e) {}
@@ -449,13 +464,52 @@
             }
         }
 
-        // Poll run status every 2 seconds
-        setInterval(loadRunStatus, 2000);
+        function setupActivityLogScroll() {
+            const el = document.getElementById('activity-log');
+            el.addEventListener('scroll', function() {
+                const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+                isAtBottom = isNearBottom;
+                if (!isNearBottom) {
+                    hasUserScrolled = true;
+                }
+            });
+            el.addEventListener('mouseenter', function() {
+                if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+                    isAtBottom = true;
+                }
+            });
+            el.addEventListener('mouseleave', function() {
+                if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+                    isAtBottom = true;
+                    hasUserScrolled = false;
+                }
+            });
+        }
+
+        function startPolling(interval = 2000) {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(loadRunStatus, interval);
+        }
+
+        function checkRunningAndAdjustPolling() {
+            fetch('/api/run-status')
+                .then(r => r.json())
+                .then(status => {
+                    if (status.running) {
+                        startPolling(2000);
+                    } else {
+                        startPolling(10000);
+                    }
+                })
+                .catch(() => startPolling(10000));
+        }
 
         loadConfig();
         loadStatus();
         loadPreferences();
         loadRunStatus();
+        setupActivityLogScroll();
+        startPolling(10000);
     </script>
 </body>
 </html>
